@@ -92,12 +92,18 @@ já têm a assinatura pronta e leem as chaves do `.env`. Veja `backend/.env.exam
 - [x] `front-cliente` — cardápio (header ML-style + categorias + grid) → produto →
       carrinho → checkout (PIX QR + cartão/dinheiro) → tracking realtime (mapa +
       timeline) → confirmar recebimento → avaliação → perfil/endereços. Capacitor pronto.
-- [ ] `front-admin` (cozinha kanban, expedição, CRUDs, dashboard)
+- [x] `front-admin` — painel com RBAC (sidebar/drawer), dashboard (KPIs + gráfico
+      Recharts), cozinha kanban realtime (som no novo pedido), expedição (foto +
+      escolher entregador), pedidos (lista/detalhe/histórico), cadastro manual de
+      pedido, CRUD de categorias/produtos/funcionários/entregadores.
 - [ ] `front-entregador` (entregas, rota, foto, confirmação de pagamento)
 
-### Rodar o app do cliente
+### Rodar os apps
 
 ```bash
-cd front-cliente && pnpm dev      # http://localhost:3000  (backend precisa estar no ar)
+cd front-cliente && pnpm dev      # http://localhost:3000  (cliente; backend no ar)
+cd front-admin   && pnpm dev      # http://localhost:3001  (restaurante/admin)
 ```
-Login de teste: `cliente@cabana.com` / `cliente123`. Empacotar mobile: veja `capacitor.config.ts`.
+Cliente: `cliente@cabana.com` / `cliente123`. Empacotar mobile: `capacitor.config.ts`.
+Admin: `admin@cabana.com` / `admin123` (ou cozinha/expedicao/atendente — cada papel
+cai direto na sua área). RBAC no front **e** no backend.

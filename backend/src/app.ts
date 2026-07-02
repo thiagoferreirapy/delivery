@@ -16,6 +16,7 @@ import { kitchenRouter } from "./modules/kitchen.js";
 import { dispatchRouter } from "./modules/dispatch.js";
 import { courierRouter } from "./modules/courier.js";
 import { employeesRouter, couriersRouter, adminRouter } from "./modules/admin.js";
+import { customersRouter } from "./modules/customers.js";
 import { uploadsRouter } from "./modules/uploads.js";
 
 export function createApp() {
@@ -52,6 +53,7 @@ export function createApp() {
   app.use("/courier", courierRouter);
   app.use("/employees", employeesRouter);
   app.use("/couriers", couriersRouter);
+  app.use("/customers", customersRouter);
   app.use("/admin", adminRouter);
   app.use("/uploads", uploadsRouter);
 
