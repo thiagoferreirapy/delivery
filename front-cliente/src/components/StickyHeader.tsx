@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { CategoryDTO } from "@cabana/shared";
 import { IconBell, IconCamera, IconMapPin, IconSearch } from "./icons";
 
@@ -18,6 +18,9 @@ interface Props {
   onSearchFocus?: () => void;
 }
 
+// distância de scroll (px) para colapsar totalmente endereço + categorias
+const COLLAPSE = 96;
+
 export function StickyHeader({
   userInitial,
   address,
@@ -32,25 +35,51 @@ export function StickyHeader({
   notifCount = 0,
   onSearchFocus,
 }: Props) {
-  const [collapsed, setCollapsed] = useState(false);
-  const ticking = useRef(false);
+  const collapseRef = useRef<HTMLDivElement>(null);
+  const [fullH, setFullH] = useState(0);
+  const [progress, setProgress] = useState(0); // 0 = expandido, 1 = colapsado
 
+  // mede a altura natural da região (re-mede quando categorias carregam / resize)
   useEffect(() => {
+    const el = collapseRef.current;
+    if (!el) return;
+    const measure = () => setFullH(el.scrollHeight);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // colapso ligado ao progresso do scroll (suave, acompanha o dedo)
+  useEffect(() => {
+    let raf = false;
     const onScroll = () => {
-      if (ticking.current) return;
-      ticking.current = true;
+      if (raf) return;
+      raf = true;
       requestAnimationFrame(() => {
-        setCollapsed(window.scrollY > 120);
-        ticking.current = false;
+        raf = false;
+        setProgress(Math.min(1, Math.max(0, window.scrollY / COLLAPSE)));
       });
     };
+    onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  const eased = 1 - Math.pow(1 - progress, 2); // ease-out
+  const collapseStyle: CSSProperties =
+    progress <= 0
+      ? { transformOrigin: "top" }
+      : {
+          height: Math.max(0, fullH * (1 - eased)),
+          opacity: Math.max(0, 1 - progress * 1.3),
+          transform: `translateY(${-6 * eased}px)`,
+          transformOrigin: "top",
+        };
+
   return (
     <header className="sticky top-0 z-40 bg-brand text-cream shadow-soft safe-top">
-      <div className="mx-auto max-w-app px-4 pt-3">
+      <div className="mx-auto max-w-app px-4 pb-2 pt-3">
         {/* Linha 1 — sempre visível */}
         <div className="flex items-center gap-2">
           <button
@@ -91,50 +120,42 @@ export function StickyHeader({
           </button>
         </div>
 
-        {/* Linhas 2 e 3 — recolhem no scroll */}
-        <div
-          className={`grid transition-all duration-200 ease-out ${
-            collapsed ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100"
-          }`}
-        >
-          <div className="overflow-hidden">
-            {/* Linha 2 — endereço */}
-            <button
-              type="button"
-              onClick={onAddressClick}
-              className="mt-2 flex w-full items-center gap-1.5 text-left text-sm text-cream/90"
-            >
-              <IconMapPin width={16} height={16} />
-              <span className="truncate">
-                Entregar em:{" "}
-                <span className="font-semibold underline decoration-cream/40 underline-offset-2">
-                  {address ?? "escolher endereço"}
-                </span>
+        {/* Linhas 2 e 3 — recolhem suavemente conforme o scroll */}
+        <div ref={collapseRef} style={collapseStyle} className="overflow-hidden">
+          {/* Linha 2 — endereço */}
+          <button
+            type="button"
+            onClick={onAddressClick}
+            className="mt-2 flex w-full items-center gap-1.5 text-left text-sm text-cream/90"
+          >
+            <IconMapPin width={16} height={16} />
+            <span className="truncate">
+              Entregar em:{" "}
+              <span className="font-semibold underline decoration-cream/40 underline-offset-2">
+                {address ?? "escolher endereço"}
               </span>
-            </button>
+            </span>
+          </button>
 
-            {/* Linha 3 — categorias */}
-            {(onCategory || categories.length > 0) && (
-              <nav className="no-scrollbar mt-2 flex gap-2 overflow-x-auto pb-3">
+          {/* Linha 3 — categorias */}
+          {(onCategory || categories.length > 0) && (
+            <nav className="no-scrollbar mt-2 flex gap-2 overflow-x-auto pb-1">
+              <CategoryTab
+                label="Tudo"
+                active={activeCategory === null}
+                onClick={() => onCategory?.(null)}
+              />
+              {categories.map((c) => (
                 <CategoryTab
-                  label="Tudo"
-                  active={activeCategory === null}
-                  onClick={() => onCategory?.(null)}
+                  key={c.id}
+                  label={c.name}
+                  active={activeCategory === c.id}
+                  onClick={() => onCategory?.(c.id)}
                 />
-                {categories.map((c) => (
-                  <CategoryTab
-                    key={c.id}
-                    label={c.name}
-                    active={activeCategory === c.id}
-                    onClick={() => onCategory?.(c.id)}
-                  />
-                ))}
-              </nav>
-            )}
-          </div>
+              ))}
+            </nav>
+          )}
         </div>
-        {/* padding inferior quando colapsado */}
-        <div className={collapsed ? "pb-3" : ""} />
       </div>
     </header>
   );
