@@ -8,9 +8,11 @@ let socket: Socket | null = null;
 export function getSocket(): Socket {
   if (socket) return socket;
   const token = useAuthStore.getState().token;
-  socket = io(SOCKET_URL, {
+  // SOCKET_URL vazio => mesma origem (proxied). Polling primeiro p/ atravessar
+  // o proxy/túnel de forma confiável, com upgrade p/ websocket quando possível.
+  socket = io(SOCKET_URL || undefined, {
     auth: token ? { token } : {},
-    transports: ["websocket"],
+    transports: ["polling", "websocket"],
     autoConnect: true,
   });
   return socket;
