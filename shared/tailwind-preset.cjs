@@ -19,7 +19,8 @@ module.exports = {
         danger: "#B3261E",
       },
       fontFamily: {
-        display: ["var(--font-display)", "Georgia", "serif"],
+        // display = Nunito Sans (destaque/valores/títulos), sans = Montserrat (interface)
+        display: ["var(--font-display)", "var(--font-sans)", "system-ui", "sans-serif"],
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
       },
       borderRadius: {
