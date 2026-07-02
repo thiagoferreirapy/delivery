@@ -1,6 +1,7 @@
 "use client";
 import Image from "next/image";
 import type { CategoryDTO } from "@cabana/shared";
+import { LayoutGrid, UtensilsCrossed } from "lucide-react";
 
 interface Props {
   categories: CategoryDTO[];
@@ -8,10 +9,10 @@ interface Props {
   onSelect: (id: string | null) => void;
 }
 
-// Pílulas circulares com imagem — scroll horizontal com snap (mobile-first)
+// Pílulas circulares com imagem — scroll horizontal livre (sem snap rígido).
 export function CategoryPills({ categories, active, onSelect }: Props) {
   return (
-    <div className="no-scrollbar flex gap-4 overflow-x-auto px-4 py-3 snap-x snap-mandatory">
+    <div className="no-scrollbar flex gap-4 overflow-x-auto scroll-smooth px-4 py-3">
       <Pill label="Tudo" active={active === null} onClick={() => onSelect(null)} />
       {categories.map((c) => (
         <Pill
@@ -41,17 +42,23 @@ function Pill({
     <button
       type="button"
       onClick={onClick}
-      className="flex shrink-0 snap-start flex-col items-center gap-1.5"
+      className="flex shrink-0 flex-col items-center gap-1.5"
     >
       <span
-        className={`grid h-16 w-16 place-items-center overflow-hidden rounded-full border-2 transition-colors ${
-          active ? "border-brand" : "border-transparent"
+        className={`grid h-16 w-16 place-items-center overflow-hidden rounded-full ring-2 transition-colors ${
+          active ? "ring-brand" : "ring-black/5"
         }`}
       >
         {imageUrl ? (
           <Image src={imageUrl} alt={label} width={64} height={64} className="h-full w-full object-cover" />
         ) : (
-          <span className="grid h-full w-full place-items-center bg-brand/10 text-brand">🍽️</span>
+          <span className="grid h-full w-full place-items-center bg-brand/10 text-brand">
+            {label === "Tudo" ? (
+              <LayoutGrid size={24} strokeWidth={2} />
+            ) : (
+              <UtensilsCrossed size={22} strokeWidth={2} />
+            )}
+          </span>
         )}
       </span>
       <span className={`text-xs font-medium ${active ? "text-brand" : "text-muted"}`}>{label}</span>

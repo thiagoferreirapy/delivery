@@ -1,19 +1,21 @@
 "use client";
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useProduct } from "@/lib/queries";
 import { useCartStore } from "@/lib/cart-store";
 import { brl } from "@/lib/format";
-import { PageHeader, EmptyState } from "@/components/ui";
+import { EmptyState } from "@/components/ui";
 import { ProductDetailSkeleton } from "@/components/Skeleton";
-import { IconMinus, IconPlus } from "@/components/icons";
+import { IconMinus, IconPlus, IconChevronLeft, IconCart } from "@/components/icons";
 
 export default function ProductPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { data: product, isLoading } = useProduct(id);
   const add = useCartStore((s) => s.add);
+  const cartCount = useCartStore((s) => s.items.reduce((n, i) => n + i.quantity, 0));
   const [qty, setQty] = useState(1);
   const [notes, setNotes] = useState("");
 
@@ -30,15 +32,35 @@ export default function ProductPage() {
 
   return (
     <div className="mx-auto min-h-dvh max-w-app pb-28">
-      <PageHeader title="" back="/" />
-
-      <div className="relative -mt-14 aspect-square w-full bg-black/5">
+      {/* Hero da foto com botões flutuantes (estilo iFood) */}
+      <div className="relative aspect-square w-full bg-black/[0.03]">
         {product.imageUrl && (
           <Image src={product.imageUrl} alt={product.name} fill sizes="480px" className="object-cover" priority />
         )}
+        <div className="safe-top pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between p-3">
+          <Link
+            href="/"
+            aria-label="Voltar"
+            className="pointer-events-auto grid h-10 w-10 place-items-center rounded-full bg-white/90 text-ink shadow-soft backdrop-blur transition active:scale-95"
+          >
+            <IconChevronLeft width={20} height={20} />
+          </Link>
+          <Link
+            href="/carrinho"
+            aria-label="Carrinho"
+            className="pointer-events-auto relative grid h-10 w-10 place-items-center rounded-full bg-white/90 text-ink shadow-soft backdrop-blur transition active:scale-95"
+          >
+            <IconCart width={20} height={20} />
+            {cartCount > 0 && (
+              <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-brand px-1 text-[10px] font-bold text-cream">
+                {cartCount}
+              </span>
+            )}
+          </Link>
+        </div>
         {product.promoActive && product.promoPercent && (
-          <span className="absolute right-3 top-16 rounded-full bg-brand px-3 py-1 text-sm font-bold text-cream">
-            {product.promoPercent}% OFF
+          <span className="absolute bottom-3 left-3 z-10 rounded-full bg-brand px-2.5 py-1 text-xs font-semibold text-white">
+            -{product.promoPercent}%
           </span>
         )}
       </div>

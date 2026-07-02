@@ -96,7 +96,7 @@ export function StickyHeader({
 
             {/* Linha 3 — categorias */}
             {(onCategory || categories.length > 0) && (
-              <nav className="no-scrollbar mt-2 flex gap-2 overflow-x-auto pb-3 snap-x">
+              <nav className="no-scrollbar mt-2 flex gap-2 overflow-x-auto pb-3">
                 <CategoryTab
                   label="Tudo"
                   active={activeCategory === null}
@@ -134,7 +134,7 @@ function CategoryTab({
     <button
       type="button"
       onClick={onClick}
-      className={`snap-start whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+      className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
         active ? "bg-cream text-brand" : "bg-cream/15 text-cream hover:bg-cream/25"
       }`}
     >
