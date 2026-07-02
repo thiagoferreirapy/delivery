@@ -126,7 +126,13 @@ export function useOrder(id: string, opts?: { poll?: boolean }) {
 export interface CreateOrderPayload {
   addressId: string;
   paymentMethod: "PIX" | "CREDIT_CARD" | "DEBIT_CARD" | "CASH";
-  items: { productId: string; quantity: number; notes?: string }[];
+  items: {
+    productId: string;
+    quantity: number;
+    notes?: string;
+    extras?: { id: string; quantity: number }[];
+    removedIds?: string[];
+  }[];
   notes?: string;
 }
 

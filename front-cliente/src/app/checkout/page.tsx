@@ -64,7 +64,13 @@ export default function CheckoutPage() {
       const order = await createOrder.mutateAsync({
         addressId,
         paymentMethod: method,
-        items: items.map((i) => ({ productId: i.productId, quantity: i.quantity, notes: i.notes })),
+        items: items.map((i) => ({
+          productId: i.productId,
+          quantity: i.quantity,
+          notes: i.notes,
+          extras: i.extras.map((e) => ({ id: e.id, quantity: e.quantity })),
+          removedIds: i.removed.map((r) => r.id),
+        })),
         notes: notes || undefined,
       });
       if (method === "PIX") {
