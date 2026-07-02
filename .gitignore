@@ -29,6 +29,7 @@ front-cliente/ios/
 
 # logs / os
 *.log
+.log-*.txt
 .DS_Store
 Thumbs.db
 tsconfig.tsbuildinfo
