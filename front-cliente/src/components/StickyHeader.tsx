@@ -13,6 +13,7 @@ interface Props {
   activeCategory?: string | null; // null = "Tudo"
   onCategory?: (id: string | null) => void;
   onBell?: () => void;
+  onAvatar?: () => void;
 }
 
 export function StickyHeader({
@@ -25,6 +26,7 @@ export function StickyHeader({
   activeCategory = null,
   onCategory,
   onBell,
+  onAvatar,
 }: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const ticking = useRef(false);
@@ -47,9 +49,14 @@ export function StickyHeader({
       <div className="mx-auto max-w-app px-4 pt-3">
         {/* Linha 1 — sempre visível */}
         <div className="flex items-center gap-2">
-          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-cream/20 font-semibold">
+          <button
+            type="button"
+            onClick={onAvatar}
+            aria-label="Abrir menu do perfil"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-cream/20 font-semibold transition active:scale-95"
+          >
             {userInitial}
-          </div>
+          </button>
           <label className="flex flex-1 items-center gap-2 rounded-2xl bg-cream px-3 py-2 text-ink">
             <IconSearch className="text-muted" width={18} height={18} />
             <input

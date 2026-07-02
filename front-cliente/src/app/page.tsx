@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { StickyHeader } from "@/components/StickyHeader";
 import { CategoryHero } from "@/components/CategoryHero";
+import { ProfileDrawer } from "@/components/ProfileDrawer";
 import { ProductCard } from "@/components/ProductCard";
 import { TabShell } from "@/components/TabShell";
 import { EmptyState } from "@/components/ui";
@@ -15,6 +16,7 @@ export default function HomePage() {
   const user = useAuthStore((s) => s.user);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const { data: categories = [] } = useCategories();
   const { data: products = [], isLoading } = useProducts({
@@ -46,7 +48,10 @@ export default function HomePage() {
         activeCategory={category}
         onCategory={setCategory}
         onBell={() => router.push("/pedidos")}
+        onAvatar={() => setDrawerOpen(true)}
       />
+
+      <ProfileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
 
       {/* Destaque: card da categoria selecionada; no "Tudo", banner de promoção */}
       {!search &&
