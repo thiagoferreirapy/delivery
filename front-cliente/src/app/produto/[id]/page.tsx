@@ -37,7 +37,7 @@ export default function ProductPage() {
         {product.imageUrl && (
           <Image src={product.imageUrl} alt={product.name} fill sizes="480px" className="object-cover" priority />
         )}
-        <div className="safe-top pointer-events-none absolute inset-x-0 top-[5px] z-10 flex items-start justify-between p-3">
+        <div className="safe-top pointer-events-none absolute inset-x-0 top-[10px] z-10 flex items-start justify-between p-3">
           <Link
             href="/"
             aria-label="Voltar"
