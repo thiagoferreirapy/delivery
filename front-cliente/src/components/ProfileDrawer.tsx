@@ -60,7 +60,7 @@ export function ProfileDrawer({ open, onClose }: { open: boolean; onClose: () =>
         className={`absolute inset-y-0 left-0 flex w-[86%] max-w-[340px] flex-col bg-cream shadow-2xl transition-transform duration-200 ease-out ${open ? "translate-x-0" : "-translate-x-full"}`}
       >
         {/* cabeçalho do perfil */}
-        <div className="bg-white px-5 pb-5 pt-[calc(1.5rem+env(safe-area-inset-top))]">
+        <div className="safe-top bg-white px-5 pb-5 pt-6">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="truncate text-xl font-bold text-ink">{user?.name ?? "Visitante"}</p>
