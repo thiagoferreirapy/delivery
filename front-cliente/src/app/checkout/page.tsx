@@ -182,7 +182,7 @@ export default function CheckoutPage() {
         {error && <p className="text-sm text-danger">{error}</p>}
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-black/5 bg-white/95 p-4 backdrop-blur safe-bottom">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-black/5 bg-white/95 px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur">
         <div className="mx-auto flex max-w-app items-center justify-between gap-3">
           <div className="text-sm">
             <span className="block text-muted">Total</span>

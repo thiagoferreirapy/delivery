@@ -66,7 +66,7 @@ export default function CartPage() {
       </div>
 
       {/* Resumo + ação */}
-      <div className="fixed inset-x-0 bottom-16 z-30 border-t border-black/5 bg-white/95 p-4 backdrop-blur md:bottom-0 safe-bottom">
+      <div className="fixed inset-x-0 bottom-16 z-30 border-t border-black/5 bg-white/95 px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur md:bottom-0">
         <div className="mx-auto max-w-app">
           <dl className="mb-3 space-y-1 text-sm">
             <div className="flex justify-between text-muted">

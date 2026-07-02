@@ -119,7 +119,7 @@ export default function ProductPage() {
       </div>
 
       {/* Barra fixa de ação */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-black/5 bg-white/95 p-4 backdrop-blur safe-bottom">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-black/5 bg-white/95 px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur">
         <div className="mx-auto flex max-w-app items-center gap-3">
           <button onClick={addToCart} className="btn-primary w-full">
             Adicionar • {brl(total)}
