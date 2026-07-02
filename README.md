@@ -96,14 +96,22 @@ já têm a assinatura pronta e leem as chaves do `.env`. Veja `backend/.env.exam
       Recharts), cozinha kanban realtime (som no novo pedido), expedição (foto +
       escolher entregador), pedidos (lista/detalhe/histórico), cadastro manual de
       pedido, CRUD de categorias/produtos/funcionários/entregadores.
-- [ ] `front-entregador` (entregas, rota, foto, confirmação de pagamento)
+- [x] `front-entregador` — login (sem auto-cadastro), lista de entregas simultâneas,
+      fluxo confirmar recebimento → iniciar rota (geolocalização ao vivo, com
+      fallback simulado) → confirmar entrega (foto + confirmar pagamento na entrega),
+      mapa da rota, histórico, perfil. Header sticky 2 estados + bottom nav.
+- [x] **Ciclo completo validado** ponta a ponta: um pedido percorre
+      `PENDING → … → CONFIRMED_BY_CUSTOMER` pelos 3 apps, com realtime, foto de
+      entrega e pagamento confirmado pelo entregador.
 
 ### Rodar os apps
 
 ```bash
-cd front-cliente && pnpm dev      # http://localhost:3000  (cliente; backend no ar)
-cd front-admin   && pnpm dev      # http://localhost:3001  (restaurante/admin)
+cd front-cliente   && pnpm dev    # http://localhost:3000  (cliente; backend no ar)
+cd front-admin     && pnpm dev    # http://localhost:3001  (restaurante/admin)
+cd front-entregador && pnpm dev   # http://localhost:3002  (entregador)
 ```
 Cliente: `cliente@cabana.com` / `cliente123`. Empacotar mobile: `capacitor.config.ts`.
 Admin: `admin@cabana.com` / `admin123` (ou cozinha/expedicao/atendente — cada papel
-cai direto na sua área). RBAC no front **e** no backend.
+cai direto na sua área). Entregador: `11999990001` / `entregador123`.
+RBAC no front **e** no backend.
