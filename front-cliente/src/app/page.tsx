@@ -54,6 +54,7 @@ export default function HomePage() {
         onBell={() => router.push("/notificacoes")}
         onAvatar={() => setDrawerOpen(true)}
         notifCount={notifCount}
+        onSearchFocus={() => router.push("/buscar")}
       />
 
       <ProfileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />

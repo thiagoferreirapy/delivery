@@ -15,6 +15,7 @@ interface Props {
   onBell?: () => void;
   onAvatar?: () => void;
   notifCount?: number;
+  onSearchFocus?: () => void;
 }
 
 export function StickyHeader({
@@ -29,6 +30,7 @@ export function StickyHeader({
   onBell,
   onAvatar,
   notifCount = 0,
+  onSearchFocus,
 }: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const ticking = useRef(false);
@@ -64,6 +66,9 @@ export function StickyHeader({
             <input
               value={search}
               onChange={(e) => onSearch(e.target.value)}
+              onFocus={onSearchFocus}
+              onClick={onSearchFocus}
+              readOnly={!!onSearchFocus}
               placeholder="Buscar na Cabana…"
               className="w-full bg-transparent text-sm outline-none placeholder:text-muted/70"
             />
