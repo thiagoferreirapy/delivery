@@ -1,0 +1,29 @@
+{
+  "name": "cabana-lanches",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cabana Lanches — sistema de delivery completo (backend + 3 fronts)",
+  "packageManager": "pnpm@10.32.1",
+  "scripts": {
+    "dev:backend": "pnpm --filter @cabana/backend dev",
+    "dev:cliente": "pnpm --filter @cabana/front-cliente dev",
+    "dev:admin": "pnpm --filter @cabana/front-admin dev",
+    "dev:entregador": "pnpm --filter @cabana/front-entregador dev",
+    "db:migrate": "pnpm --filter @cabana/backend db:migrate",
+    "db:seed": "pnpm --filter @cabana/backend db:seed",
+    "db:reset": "pnpm --filter @cabana/backend db:reset",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "prisma",
+      "esbuild"
+    ]
+  }
+}

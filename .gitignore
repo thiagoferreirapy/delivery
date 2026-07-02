@@ -1,0 +1,34 @@
+# deps
+node_modules/
+.pnpm-store/
+
+# builds
+dist/
+.next/
+out/
+build/
+
+# env
+.env
+.env.local
+*.local
+
+# prisma / sqlite
+*.db
+*.db-journal
+backend/prisma/*.db
+backend/prisma/*.db-journal
+
+# uploads (runtime)
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# capacitor native
+front-cliente/android/
+front-cliente/ios/
+
+# logs / os
+*.log
+.DS_Store
+Thumbs.db
+tsconfig.tsbuildinfo

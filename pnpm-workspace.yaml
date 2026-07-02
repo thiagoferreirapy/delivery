@@ -1,0 +1,6 @@
+packages:
+  - "shared"
+  - "backend"
+  - "front-cliente"
+  - "front-admin"
+  - "front-entregador"

@@ -1,0 +1,203 @@
+// Cabana Lanches — schema Prisma
+// DB atual: SQLite. Migração p/ Postgres: trocar provider + DATABASE_URL.
+// OBS: SQLite/Prisma não suporta `enum` nativo, então os campos de status são
+// String, com os valores válidos garantidos pela camada de aplicação
+// (@cabana/shared: enums + zod + OrderStateMachine). Em Postgres pode-se
+// promover para enums depois sem alterar a lógica.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ===== Usuários finais (clientes) =====
+model User {
+  id        String    @id @default(cuid())
+  name      String
+  email     String    @unique
+  phone     String?
+  password  String
+  addresses Address[]
+  orders    Order[]
+  ratings   Rating[]
+  createdAt DateTime  @default(now())
+}
+
+model Address {
+  id           String  @id @default(cuid())
+  userId       String
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label        String
+  cep          String
+  street       String
+  number       String
+  complement   String?
+  neighborhood String
+  city         String
+  state        String
+  lat          Float?
+  lng          Float?
+  isDefault    Boolean @default(false)
+  orders       Order[]
+
+  @@index([userId])
+}
+
+// ===== Catálogo =====
+model Category {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  imageUrl  String?
+  sortOrder Int       @default(0)
+  active    Boolean   @default(true)
+  products  Product[]
+}
+
+model Product {
+  id           String      @id @default(cuid())
+  categoryId   String
+  category     Category    @relation(fields: [categoryId], references: [id])
+  name         String
+  description  String?
+  ingredients  String?
+  prepNotes    String?
+  price        Decimal
+  imageUrl     String?
+  active       Boolean     @default(true)
+  promoActive  Boolean     @default(false)
+  promoPercent Int?
+  items        OrderItem[]
+
+  @@index([categoryId])
+}
+
+// ===== Pedidos =====
+// status:        OrderStatus  (PENDING..CONFIRMED_BY_CUSTOMER | CANCELLED)
+// paymentMethod: PaymentMethod (PIX | CREDIT_CARD | DEBIT_CARD | CASH)
+model Order {
+  id            String               @id @default(cuid())
+  code          String               @unique
+  userId        String
+  user          User                 @relation(fields: [userId], references: [id])
+  addressId     String
+  address       Address              @relation(fields: [addressId], references: [id])
+  items         OrderItem[]
+  status        String               @default("PENDING")
+  paymentMethod String
+  subtotal      Decimal
+  deliveryFee   Decimal              @default(0)
+  total         Decimal
+  notes         String?
+  courierId     String?
+  courier       Courier?             @relation(fields: [courierId], references: [id])
+  payment       Payment?
+  delivery      Delivery?
+  rating        Rating?
+  history       OrderStatusHistory[]
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([courierId])
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Decimal
+  notes     String?
+
+  @@index([orderId])
+}
+
+model OrderStatusHistory {
+  id                String   @id @default(cuid())
+  orderId           String
+  order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status            String
+  changedByEmployee String? // Employee.id ou Courier.id ou "system"
+  note              String?
+  photoUrl          String?
+  createdAt         DateTime @default(now())
+
+  @@index([orderId])
+}
+
+// status: PaymentStatus (PENDING | PAID | CONFIRMED_ON_DELIVERY | FAILED | REFUNDED)
+model Payment {
+  id                 String    @id @default(cuid())
+  orderId            String    @unique
+  order              Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  method             String
+  status             String    @default("PENDING")
+  amount             Decimal
+  pixQrCode          String?
+  pixQrImageUrl      String?
+  paidAt             DateTime?
+  confirmedByCourier Boolean   @default(false)
+}
+
+model Delivery {
+  id               String    @id @default(cuid())
+  orderId          String    @unique
+  order            Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  courierId        String
+  courier          Courier   @relation(fields: [courierId], references: [id])
+  pickupPhotoUrl   String?
+  deliveryPhotoUrl String?
+  startedAt        DateTime?
+  deliveredAt      DateTime?
+  lat              Float?
+  lng              Float?
+
+  @@index([courierId])
+}
+
+// ===== Entregadores =====
+model Courier {
+  id             String     @id @default(cuid())
+  name           String
+  phone          String     @unique
+  password       String
+  active         Boolean    @default(true)
+  currentLat     Float?
+  currentLng     Float?
+  lastLocationAt DateTime?
+  orders         Order[]
+  deliveries     Delivery[]
+  createdAt      DateTime   @default(now())
+}
+
+// ===== Funcionários do restaurante (RBAC) =====
+// role: EmployeeRole (ADMIN | KITCHEN | DISPATCH | ATTENDANT)
+model Employee {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+// ===== Avaliações =====
+model Rating {
+  id        String   @id @default(cuid())
+  orderId   String   @unique
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  stars     Int
+  comment   String?
+  createdAt DateTime @default(now())
+}
