@@ -19,8 +19,9 @@ module.exports = {
         danger: "#B3261E",
       },
       fontFamily: {
-        // display = Nunito Sans (destaque/valores/títulos), sans = Montserrat (interface)
-        display: ["var(--font-display)", "var(--font-sans)", "system-ui", "sans-serif"],
+        // Fonte única: Montserrat em toda a interface (estilo Mercado Livre).
+        // `display` mantido como alias para não quebrar classes font-display existentes.
+        display: ["var(--font-sans)", "system-ui", "sans-serif"],
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
       },
       borderRadius: {

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Montserrat, Nunito_Sans } from "next/font/google";
+import { Montserrat } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -9,13 +9,6 @@ const montserrat = Montserrat({
   variable: "--font-sans",
   display: "swap",
 });
-const nunito = Nunito_Sans({
-  subsets: ["latin"],
-  variable: "--font-display",
-  display: "swap",
-  weight: ["600", "700", "800"],
-  adjustFontFallback: false,
-});
 
 export const metadata: Metadata = {
   title: "Cabana Lanches — Painel",
@@ -24,7 +17,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={`${montserrat.variable} ${nunito.variable}`}>
+    <html lang="pt-BR" className={montserrat.variable}>
       <body className="font-sans antialiased">
         <Providers>{children}</Providers>
       </body>

@@ -47,9 +47,12 @@ export default function ProductPage() {
         <div>
           <h1 className="font-display text-2xl font-bold text-ink">{product.name}</h1>
           <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-xl font-bold text-brand">{brl(product.finalPrice)}</span>
             {product.promoActive && product.promoPercent && (
               <span className="text-sm text-muted line-through">{brl(product.price)}</span>
+            )}
+            <span className="text-2xl font-semibold tracking-tight text-ink tabular-nums">{brl(product.finalPrice)}</span>
+            {product.promoActive && product.promoPercent && (
+              <span className="text-sm font-semibold text-success">{product.promoPercent}% OFF</span>
             )}
           </div>
         </div>

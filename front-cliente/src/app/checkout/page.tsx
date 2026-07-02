@@ -186,7 +186,7 @@ export default function CheckoutPage() {
         <div className="mx-auto flex max-w-app items-center justify-between gap-3">
           <div className="text-sm">
             <span className="block text-muted">Total</span>
-            <span className="font-display text-lg font-bold text-brand">{brl(total)}</span>
+            <span className="text-lg font-semibold text-ink tabular-nums">{brl(total)}</span>
           </div>
           <button onClick={placeOrder} disabled={createOrder.isPending} className="btn-primary flex-1">
             {createOrder.isPending && <Loader2 className="animate-spin" width={18} height={18} />}

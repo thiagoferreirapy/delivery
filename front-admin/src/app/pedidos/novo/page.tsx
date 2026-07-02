@@ -143,7 +143,7 @@ export default function NewOrderPage() {
         </div>
         {error && <p className="mb-2 text-sm text-danger">{error}</p>}
         <div className="flex items-center justify-between">
-          <span className="font-display text-lg font-bold text-brand">{brl(total)}</span>
+          <span className="text-lg font-semibold text-ink tabular-nums">{brl(total)}</span>
           <button onClick={submit} disabled={createOrder.isPending} className="btn-primary">
             {createOrder.isPending && <Loader2 className="animate-spin" width={16} height={16} />}
             {createOrder.isPending ? "Criando…" : "Criar pedido"}

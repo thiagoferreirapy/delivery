@@ -70,7 +70,7 @@ export default function TrackOrderPage() {
       <div className="flex flex-col gap-4 p-4">
         <div className="flex items-center justify-between">
           <StatusBadge status={order.status} />
-          <span className="font-display font-bold text-brand">{brl(order.total)}</span>
+          <span className="font-semibold text-ink tabular-nums">{brl(order.total)}</span>
         </div>
 
         {/* Em rota: entregador + mapa + aviso */}

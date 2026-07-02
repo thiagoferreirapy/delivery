@@ -45,7 +45,7 @@ export default function CartPage() {
               <p className="text-sm font-medium leading-snug text-ink">{item.name}</p>
               {item.notes && <p className="text-xs text-muted">Obs: {item.notes}</p>}
               <div className="mt-auto flex items-center justify-between">
-                <span className="font-semibold text-brand">{brl(item.unitPrice * item.quantity)}</span>
+                <span className="font-semibold text-ink tabular-nums">{brl(item.unitPrice * item.quantity)}</span>
                 <div className="flex items-center gap-2 rounded-full border border-black/10 px-1.5 py-0.5">
                   <button onClick={() => setQty(item.productId, item.quantity - 1)} className="grid h-7 w-7 place-items-center rounded-full hover:bg-black/5" aria-label="Diminuir">
                     <IconMinus width={16} height={16} />

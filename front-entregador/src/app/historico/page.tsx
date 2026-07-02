@@ -31,7 +31,7 @@ export default function HistoryPage() {
                 </div>
                 <div className="flex flex-col items-end gap-1">
                   <StatusBadge status={o.status} />
-                  <span className="text-sm font-semibold text-brand">{brl(o.total)}</span>
+                  <span className="text-sm font-semibold text-ink tabular-nums">{brl(o.total)}</span>
                 </div>
               </Link>
             ))}

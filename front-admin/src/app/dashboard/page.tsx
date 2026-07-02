@@ -90,7 +90,7 @@ export default function DashboardPage() {
                       <span className="ml-2 text-xs text-muted">{timeAgo(o.createdAt)}</span>
                     </div>
                     <StatusBadge status={o.status} />
-                    <span className="w-20 text-right text-sm font-semibold text-brand">{brl(o.total)}</span>
+                    <span className="w-20 text-right text-sm font-semibold text-ink tabular-nums">{brl(o.total)}</span>
                   </Link>
                 ))}
                 {orders.length === 0 && <p className="py-8 text-center text-sm text-muted">Nenhum pedido.</p>}

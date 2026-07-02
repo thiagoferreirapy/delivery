@@ -31,7 +31,7 @@ export default function OrdersPage() {
                   {shortDate(o.createdAt)} • {o.items.length} {o.items.length === 1 ? "item" : "itens"}
                 </p>
               </div>
-              <span className="font-display font-bold text-brand">{brl(o.total)}</span>
+              <span className="font-semibold text-ink tabular-nums">{brl(o.total)}</span>
             </Link>
           ))}
         </div>
