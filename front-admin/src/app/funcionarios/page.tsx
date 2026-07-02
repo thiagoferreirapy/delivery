@@ -2,7 +2,9 @@
 import { useState } from "react";
 import type { EmployeeRole } from "@cabana/shared";
 import { AdminShell } from "@/components/AdminShell";
-import { PageTitle, Spinner, Modal, Field, Toggle } from "@/components/ui";
+import { Loader2 } from "lucide-react";
+import { PageTitle, Modal, Field, Toggle } from "@/components/ui";
+import { ListSkeleton, Skeleton } from "@/components/Skeleton";
 import { Icon } from "@/components/icons";
 import { useEmployees, useEmployeeMutations, type EmployeeDTO } from "@/lib/queries";
 import { useRequireRole } from "@/lib/use-require-role";
@@ -36,7 +38,7 @@ export default function EmployeesPage() {
     <AdminShell>
       <PageTitle title="Funcionários" subtitle="Papéis e acesso" action={<button onClick={() => open("new")} className="btn-primary text-sm"><Icon.plus width={16} height={16} /> Novo</button>} />
       {isLoading ? (
-        <Spinner />
+        <ListSkeleton leading={<Skeleton className="h-10 w-10 rounded-full" />} />
       ) : (
         <div className="card divide-y divide-black/5">
           {employees.map((e) => (
@@ -65,7 +67,10 @@ export default function EmployeesPage() {
             </select>
           </Field>
           <Toggle checked={form.active} onChange={(v) => setForm({ ...form, active: v })} label="Acesso ativo" />
-          <button onClick={save} disabled={create.isPending || update.isPending} className="btn-primary mt-1">Salvar</button>
+          <button onClick={save} disabled={create.isPending || update.isPending} className="btn-primary mt-1">
+            {(create.isPending || update.isPending) && <Loader2 className="animate-spin" width={16} height={16} />}
+            Salvar
+          </button>
         </div>
       </Modal>
     </AdminShell>

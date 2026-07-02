@@ -2,7 +2,9 @@
 import { useState } from "react";
 import type { CourierPublicDTO } from "@cabana/shared";
 import { AdminShell } from "@/components/AdminShell";
-import { PageTitle, Spinner, Modal, Field, Toggle } from "@/components/ui";
+import { Loader2 } from "lucide-react";
+import { PageTitle, Modal, Field, Toggle } from "@/components/ui";
+import { ListSkeleton, Skeleton } from "@/components/Skeleton";
 import { Icon } from "@/components/icons";
 import { useCouriers, useCourierMutations } from "@/lib/queries";
 import { useRequireRole } from "@/lib/use-require-role";
@@ -33,7 +35,7 @@ export default function CouriersPage() {
     <AdminShell>
       <PageTitle title="Entregadores" subtitle="O entregador não se auto-cadastra" action={<button onClick={() => open("new")} className="btn-primary text-sm"><Icon.plus width={16} height={16} /> Novo</button>} />
       {isLoading ? (
-        <Spinner />
+        <ListSkeleton leading={<Skeleton className="h-10 w-10 rounded-full" />} />
       ) : (
         <div className="card divide-y divide-black/5">
           {couriers.map((c) => (
@@ -56,7 +58,10 @@ export default function CouriersPage() {
           <Field label="Telefone (login)"><input className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="11999990001" /></Field>
           <Field label={editing === "new" ? "Senha" : "Nova senha (opcional)"}><input type="password" className="input" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /></Field>
           <Toggle checked={form.active} onChange={(v) => setForm({ ...form, active: v })} label="Ativo" />
-          <button onClick={save} disabled={create.isPending || update.isPending} className="btn-primary mt-1">Salvar</button>
+          <button onClick={save} disabled={create.isPending || update.isPending} className="btn-primary mt-1">
+            {(create.isPending || update.isPending) && <Loader2 className="animate-spin" width={16} height={16} />}
+            Salvar
+          </button>
         </div>
       </Modal>
     </AdminShell>

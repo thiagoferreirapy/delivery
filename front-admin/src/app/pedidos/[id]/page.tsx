@@ -1,6 +1,7 @@
 "use client";
 import { useParams } from "next/navigation";
 import Image from "next/image";
+import { Loader2 } from "lucide-react";
 import { ORDER_STATUS_LABEL, PAYMENT_METHOD_LABEL } from "@cabana/shared";
 import { AdminShell } from "@/components/AdminShell";
 import { PageTitle, Spinner, EmptyState, StatusBadge } from "@/components/ui";
@@ -38,8 +39,10 @@ export default function OrderDetailPage() {
                   onClick={() => {
                     if (confirm("Cancelar este pedido?")) updateStatus.mutate({ id: order.id, status: "CANCELLED", note: "Cancelado pelo admin" });
                   }}
+                  disabled={updateStatus.isPending}
                   className="btn-ghost text-sm text-danger"
                 >
+                  {updateStatus.isPending && <Loader2 className="animate-spin" width={16} height={16} />}
                   Cancelar pedido
                 </button>
               ) : null

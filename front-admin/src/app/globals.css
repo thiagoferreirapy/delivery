@@ -21,6 +21,14 @@ body {
   scrollbar-width: none;
 }
 
+h1,
+h2,
+h3,
+.btn-primary,
+.btn-ghost {
+  letter-spacing: -0.01em;
+}
+
 @layer components {
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5 font-semibold text-cream transition-colors hover:bg-brand-hover active:scale-[.99] disabled:opacity-50;

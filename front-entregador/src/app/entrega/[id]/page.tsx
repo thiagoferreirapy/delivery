@@ -3,9 +3,12 @@ import { useState } from "react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import { PAYMENT_METHOD_LABEL } from "@cabana/shared";
-import { PageHeader, Spinner, EmptyState, StatusBadge } from "@/components/ui";
+import { PageHeader, EmptyState, StatusBadge } from "@/components/ui";
+import { DeliveryDetailSkeleton } from "@/components/Skeleton";
 import { LiveMap } from "@/components/LiveMap";
 import { IconCamera, IconMapPin, IconPhone, IconMoney, IconCheck } from "@/components/icons";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { useDelivery, useDeliveryAction } from "@/lib/queries";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useLocationStore } from "@/lib/location-store";
@@ -24,7 +27,13 @@ export default function DeliveryDetailPage() {
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!ready || isLoading) return <Spinner />;
+  if (!ready || isLoading)
+    return (
+      <div className="mx-auto min-h-dvh max-w-app pb-8">
+        <PageHeader title="Entrega" back="/" />
+        <DeliveryDetailSkeleton />
+      </div>
+    );
   if (!order) return <EmptyState emoji="😕" title="Entrega não encontrada" />;
 
   const needsPayment = order.paymentMethod !== "PIX";
@@ -50,7 +59,9 @@ export default function DeliveryDetailPage() {
     try {
       await action.mutateAsync({ id: order!.id, action: "deliver", photoUrl, paymentConfirmed });
     } catch (e: any) {
-      setError(e?.message ?? "Falha ao finalizar");
+      const msg = e?.message ?? "Falha ao finalizar";
+      setError(msg);
+      toast.error(msg);
     }
   }
 
@@ -105,12 +116,14 @@ export default function DeliveryDetailPage() {
         {/* Ações por status */}
         {order.status === "DISPATCHED" && (
           <button onClick={() => action.mutate({ id: order.id, action: "pickup" })} disabled={action.isPending} className="btn-primary w-full">
+            {action.isPending && <Loader2 className="animate-spin" width={18} height={18} />}
             Confirmar recebimento do pedido
           </button>
         )}
 
         {order.status === "PICKED_UP" && (
           <button onClick={() => action.mutate({ id: order.id, action: "start-route" })} disabled={action.isPending} className="btn-primary w-full">
+            {action.isPending && <Loader2 className="animate-spin" width={18} height={18} />}
             Iniciar rota
           </button>
         )}
@@ -142,7 +155,7 @@ export default function DeliveryDetailPage() {
 
             {error && <p className="text-sm text-danger">{error}</p>}
             <button onClick={finishDelivery} disabled={action.isPending || uploading} className="btn-primary w-full">
-              <IconCheck width={18} height={18} /> Finalizar entrega
+              {action.isPending ? <Loader2 className="animate-spin" width={18} height={18} /> : <IconCheck width={18} height={18} />} Finalizar entrega
             </button>
           </section>
         )}

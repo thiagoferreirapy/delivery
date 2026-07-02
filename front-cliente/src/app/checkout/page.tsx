@@ -10,6 +10,8 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 import { brl } from "@/lib/format";
 import { DELIVERY_FEE_DISPLAY } from "@/lib/config";
 import { PageHeader, Spinner } from "@/components/ui";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { IconCopy, IconCheck } from "@/components/icons";
 
 const METHODS: PaymentMethod[] = ["PIX", "CREDIT_CARD", "DEBIT_CARD", "CASH"];
@@ -74,7 +76,9 @@ export default function CheckoutPage() {
         router.replace(`/pedido/${order.id}`);
       }
     } catch (e: any) {
-      setError(e?.message ?? "Falha ao criar pedido");
+      const msg = e?.message ?? "Falha ao criar pedido";
+      setError(msg);
+      toast.error(msg);
     }
   }
 
@@ -111,6 +115,7 @@ export default function CheckoutPage() {
             className="btn-primary w-full"
             disabled={simulatePix.isPending}
           >
+            {simulatePix.isPending && <Loader2 className="animate-spin" width={18} height={18} />}
             Simular pagamento (teste)
           </button>
         </div>
@@ -184,6 +189,7 @@ export default function CheckoutPage() {
             <span className="font-display text-lg font-bold text-brand">{brl(total)}</span>
           </div>
           <button onClick={placeOrder} disabled={createOrder.isPending} className="btn-primary flex-1">
+            {createOrder.isPending && <Loader2 className="animate-spin" width={18} height={18} />}
             {createOrder.isPending ? "Enviando…" : method === "PIX" ? "Pagar com PIX" : "Confirmar pedido"}
           </button>
         </div>

@@ -8,7 +8,9 @@ import { useOrder, useConfirmReceipt, useRateOrder } from "@/lib/queries";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { getSocket } from "@/lib/socket";
 import { brl } from "@/lib/format";
-import { PageHeader, Spinner, EmptyState, StatusBadge, Stars } from "@/components/ui";
+import { PageHeader, EmptyState, StatusBadge, Stars } from "@/components/ui";
+import { OrderTrackingSkeleton } from "@/components/Skeleton";
+import { Loader2 } from "lucide-react";
 import { StatusTimeline } from "@/components/StatusTimeline";
 import { LiveMap } from "@/components/LiveMap";
 
@@ -44,7 +46,7 @@ export default function TrackOrderPage() {
     };
   }, [id, ready, qc]);
 
-  if (!ready || isLoading) return <Spinner />;
+  if (!ready || isLoading) return <OrderTrackingSkeleton />;
   if (!order) return <EmptyState emoji="😕" title="Pedido não encontrado" />;
 
   const courier = order.courier;
@@ -99,6 +101,7 @@ export default function TrackOrderPage() {
             )}
             <p className="text-sm text-muted">Foto registrada pelo entregador no momento da entrega.</p>
             <button onClick={() => confirmReceipt.mutate(order.id)} disabled={confirmReceipt.isPending} className="btn-primary w-full">
+              {confirmReceipt.isPending && <Loader2 className="animate-spin" width={18} height={18} />}
               {confirmReceipt.isPending ? "Confirmando…" : "Confirmar recebimento"}
             </button>
           </section>
@@ -115,6 +118,7 @@ export default function TrackOrderPage() {
               disabled={rateOrder.isPending}
               className="btn-primary w-full"
             >
+              {rateOrder.isPending && <Loader2 className="animate-spin" width={18} height={18} />}
               {rateOrder.isPending ? "Enviando…" : "Enviar avaliação"}
             </button>
           </section>

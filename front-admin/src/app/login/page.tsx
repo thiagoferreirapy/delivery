@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEmployeeLogin } from "@/lib/queries";
 import { homePathForRole } from "@/lib/rbac";
@@ -35,6 +36,7 @@ export default function AdminLoginPage() {
           <input className="input" type="password" placeholder="Senha" value={password} onChange={(e) => setPassword(e.target.value)} required />
           {error && <p className="text-sm text-danger">{error}</p>}
           <button className="btn-primary mt-1" disabled={login.isPending}>
+            {login.isPending && <Loader2 className="animate-spin" width={16} height={16} />}
             {login.isPending ? "Entrando…" : "Entrar"}
           </button>
         </form>

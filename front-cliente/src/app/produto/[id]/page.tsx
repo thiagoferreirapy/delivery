@@ -5,7 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useProduct } from "@/lib/queries";
 import { useCartStore } from "@/lib/cart-store";
 import { brl } from "@/lib/format";
-import { PageHeader, Spinner, EmptyState } from "@/components/ui";
+import { PageHeader, EmptyState } from "@/components/ui";
+import { ProductDetailSkeleton } from "@/components/Skeleton";
 import { IconMinus, IconPlus } from "@/components/icons";
 
 export default function ProductPage() {
@@ -16,7 +17,7 @@ export default function ProductPage() {
   const [qty, setQty] = useState(1);
   const [notes, setNotes] = useState("");
 
-  if (isLoading) return <Spinner />;
+  if (isLoading) return <ProductDetailSkeleton />;
   if (!product) return <EmptyState emoji="😕" title="Produto não encontrado" />;
 
   const total = product.finalPrice * qty;

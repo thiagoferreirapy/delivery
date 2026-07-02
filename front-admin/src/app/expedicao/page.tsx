@@ -1,10 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { SOCKET_EVENTS, type OrderDTO } from "@cabana/shared";
 import { AdminShell } from "@/components/AdminShell";
-import { PageTitle, Spinner, EmptyState } from "@/components/ui";
+import { PageTitle, EmptyState } from "@/components/ui";
+import { DispatchSkeleton } from "@/components/Skeleton";
 import { Icon } from "@/components/icons";
 import { useDispatchOrders, useDispatchCouriers, useAssignCourier } from "@/lib/queries";
 import { useRequireRole } from "@/lib/use-require-role";
@@ -37,7 +39,7 @@ export default function DispatchPage() {
     <AdminShell>
       <PageTitle title="Expedição" subtitle="Pedidos prontos para encaminhar" />
       {isLoading ? (
-        <Spinner />
+        <DispatchSkeleton />
       ) : orders.length === 0 ? (
         <EmptyState emoji="📦" title="Nenhum pedido pronto" subtitle="Pedidos finalizados na cozinha aparecem aqui." />
       ) : (
@@ -120,6 +122,7 @@ function DispatchCard({
         disabled={!courierId || busy || uploading}
         className="btn-primary w-full text-sm"
       >
+        {busy && <Loader2 className="animate-spin" width={16} height={16} />}
         Encaminhar ao entregador
       </button>
     </article>

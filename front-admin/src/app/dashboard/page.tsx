@@ -5,7 +5,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from "recharts";
 import { ORDER_STATUS_LABEL, SOCKET_EVENTS, type OrderStatus } from "@cabana/shared";
 import { AdminShell } from "@/components/AdminShell";
-import { PageTitle, Spinner, StatusBadge } from "@/components/ui";
+import { PageTitle, StatusBadge } from "@/components/ui";
+import { DashboardSkeleton } from "@/components/Skeleton";
 import { useStats, useOrders } from "@/lib/queries";
 import { useRequireRole } from "@/lib/use-require-role";
 import { getSocket } from "@/lib/socket";
@@ -46,7 +47,7 @@ export default function DashboardPage() {
     <AdminShell>
       <PageTitle title="Dashboard" subtitle="Visão geral de hoje" />
       {isLoading ? (
-        <Spinner />
+        <DashboardSkeleton />
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

@@ -3,7 +3,8 @@ import { useState } from "react";
 import { useProducts } from "@/lib/queries";
 import { ProductCard } from "@/components/ProductCard";
 import { TabShell } from "@/components/TabShell";
-import { Spinner, EmptyState } from "@/components/ui";
+import { EmptyState } from "@/components/ui";
+import { ProductGridSkeleton } from "@/components/Skeleton";
 import { IconSearch } from "@/components/icons";
 
 export default function SearchPage() {
@@ -27,7 +28,7 @@ export default function SearchPage() {
 
       <section className="px-4 pt-2">
         {isLoading ? (
-          <Spinner />
+          <ProductGridSkeleton count={8} />
         ) : products.length === 0 ? (
           <EmptyState emoji="🔎" title={search ? "Nada encontrado" : "O que você quer comer?"} subtitle={search ? "Tente outro termo." : "Digite para buscar no cardápio."} />
         ) : (

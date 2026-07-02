@@ -5,7 +5,8 @@ import { StickyHeader } from "@/components/StickyHeader";
 import { CategoryPills } from "@/components/CategoryPills";
 import { ProductCard } from "@/components/ProductCard";
 import { TabShell } from "@/components/TabShell";
-import { Spinner, EmptyState } from "@/components/ui";
+import { EmptyState } from "@/components/ui";
+import { ProductGridSkeleton } from "@/components/Skeleton";
 import { useCategories, useProducts, useAddresses } from "@/lib/queries";
 import { useAuthStore } from "@/lib/auth-store";
 
@@ -66,7 +67,7 @@ export default function HomePage() {
       {/* Grid de produtos */}
       <section className="px-4">
         {isLoading ? (
-          <Spinner />
+          <ProductGridSkeleton count={8} />
         ) : products.length === 0 ? (
           <EmptyState emoji="🔎" title="Nada encontrado" subtitle="Tente outra busca ou categoria." />
         ) : (

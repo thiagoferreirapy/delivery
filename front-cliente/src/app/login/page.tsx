@@ -2,6 +2,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { useAuthMutations } from "@/lib/queries";
 import { ApiError } from "@/lib/api";
 
@@ -19,7 +21,9 @@ export default function LoginPage() {
       await login.mutateAsync({ email, password });
       router.replace("/");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Falha ao entrar");
+      const msg = err instanceof ApiError ? err.message : "Falha ao entrar";
+      setError(msg);
+      toast.error(msg);
     }
   }
 
@@ -49,6 +53,7 @@ export default function LoginPage() {
         />
         {error && <p className="text-sm text-danger">{error}</p>}
         <button className="btn-primary mt-1" disabled={login.isPending}>
+          {login.isPending && <Loader2 className="animate-spin" width={18} height={18} />}
           {login.isPending ? "Entrando…" : "Entrar"}
         </button>
       </form>

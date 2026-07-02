@@ -1,9 +1,11 @@
 "use client";
 import { useEffect, useRef } from "react";
+import { Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { SOCKET_EVENTS, type OrderDTO, type OrderStatus } from "@cabana/shared";
 import { AdminShell } from "@/components/AdminShell";
-import { PageTitle, Spinner } from "@/components/ui";
+import { PageTitle } from "@/components/ui";
+import { KitchenSkeleton } from "@/components/Skeleton";
 import { useKitchenOrders, useKitchenAction } from "@/lib/queries";
 import { useRequireRole } from "@/lib/use-require-role";
 import { getSocket } from "@/lib/socket";
@@ -58,7 +60,7 @@ export default function KitchenPage() {
     <AdminShell>
       <PageTitle title="Painel da Cozinha" subtitle="Atualiza em tempo real" />
       {isLoading ? (
-        <Spinner />
+        <KitchenSkeleton />
       ) : (
         <div className="grid gap-4 md:grid-cols-3">
           {COLUMNS.map((col) => {
@@ -108,11 +110,13 @@ function KitchenCard({ order, onAction, busy }: { order: OrderDTO; onAction: (a:
       {order.notes && <p className="mb-3 text-xs text-muted">Obs: {order.notes}</p>}
       {order.status === "CONFIRMED" && (
         <button onClick={() => onAction("start")} disabled={busy} className="btn-primary w-full text-sm">
+          {busy && <Loader2 className="animate-spin" width={16} height={16} />}
           Iniciar preparo
         </button>
       )}
       {order.status === "PREPARING" && (
         <button onClick={() => onAction("finish")} disabled={busy} className="btn-primary w-full bg-emerald-600 text-sm hover:bg-emerald-700">
+          {busy && <Loader2 className="animate-spin" width={16} height={16} />}
           Finalizar preparo
         </button>
       )}

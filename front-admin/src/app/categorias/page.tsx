@@ -2,7 +2,9 @@
 import { useState } from "react";
 import type { CategoryDTO } from "@cabana/shared";
 import { AdminShell } from "@/components/AdminShell";
-import { PageTitle, Spinner, Modal, Field, Toggle } from "@/components/ui";
+import { Loader2 } from "lucide-react";
+import { PageTitle, Modal, Field, Toggle } from "@/components/ui";
+import { ListSkeleton } from "@/components/Skeleton";
 import { Icon } from "@/components/icons";
 import { useCategories, useCategoryMutations } from "@/lib/queries";
 import { useRequireRole } from "@/lib/use-require-role";
@@ -35,7 +37,7 @@ export default function CategoriesPage() {
     <AdminShell>
       <PageTitle title="Categorias" action={<button onClick={() => open("new")} className="btn-primary text-sm"><Icon.plus width={16} height={16} /> Nova</button>} />
       {isLoading ? (
-        <Spinner />
+        <ListSkeleton />
       ) : (
         <div className="card divide-y divide-black/5">
           {categories.map((c) => (
@@ -61,7 +63,10 @@ export default function CategoriesPage() {
             <Field label="Ordem"><input type="number" className="input w-24" value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })} /></Field>
             <div className="pt-6"><Toggle checked={form.active} onChange={(v) => setForm({ ...form, active: v })} label="Ativa" /></div>
           </div>
-          <button onClick={save} disabled={create.isPending || update.isPending} className="btn-primary mt-1">Salvar</button>
+          <button onClick={save} disabled={create.isPending || update.isPending} className="btn-primary mt-1">
+            {(create.isPending || update.isPending) && <Loader2 className="animate-spin" width={16} height={16} />}
+            Salvar
+          </button>
         </div>
       </Modal>
     </AdminShell>

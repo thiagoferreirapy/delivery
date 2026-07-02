@@ -2,6 +2,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { useAuthMutations } from "@/lib/queries";
 import { ApiError } from "@/lib/api";
 
@@ -25,7 +27,9 @@ export default function RegisterPage() {
       });
       router.replace("/");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Falha ao cadastrar");
+      const msg = err instanceof ApiError ? err.message : "Falha ao cadastrar";
+      setError(msg);
+      toast.error(msg);
     }
   }
 
@@ -42,6 +46,7 @@ export default function RegisterPage() {
         <input className="input" type="password" placeholder="Senha (mín. 6)" value={form.password} onChange={set("password")} required minLength={6} />
         {error && <p className="text-sm text-danger">{error}</p>}
         <button className="btn-primary mt-1" disabled={register.isPending}>
+          {register.isPending && <Loader2 className="animate-spin" width={18} height={18} />}
           {register.isPending ? "Criando…" : "Criar conta"}
         </button>
       </form>

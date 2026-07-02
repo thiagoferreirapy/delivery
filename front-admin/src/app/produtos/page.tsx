@@ -3,7 +3,9 @@ import { useState } from "react";
 import Image from "next/image";
 import type { ProductDTO } from "@cabana/shared";
 import { AdminShell } from "@/components/AdminShell";
-import { PageTitle, Spinner, Modal, Field, Toggle } from "@/components/ui";
+import { Loader2 } from "lucide-react";
+import { PageTitle, Modal, Field, Toggle } from "@/components/ui";
+import { ListSkeleton, Skeleton } from "@/components/Skeleton";
 import { Icon } from "@/components/icons";
 import { useProducts, useProductMutations, useCategories } from "@/lib/queries";
 import { useRequireRole } from "@/lib/use-require-role";
@@ -49,7 +51,7 @@ export default function ProductsPage() {
     <AdminShell>
       <PageTitle title="Produtos" action={<button onClick={() => open("new")} className="btn-primary text-sm"><Icon.plus width={16} height={16} /> Novo</button>} />
       {isLoading ? (
-        <Spinner />
+        <ListSkeleton leading={<Skeleton className="h-12 w-12 rounded-lg" />} />
       ) : (
         <div className="card divide-y divide-black/5">
           {products.map((p) => (
@@ -91,7 +93,10 @@ export default function ProductsPage() {
             <Field label="Desconto (%)"><input type="number" min={1} max={99} className="input w-28" value={form.promoPercent} onChange={(e) => setForm({ ...form, promoPercent: Number(e.target.value) })} /></Field>
           )}
         </div>
-        <button onClick={save} disabled={create.isPending || update.isPending} className="btn-primary mt-3 w-full">Salvar</button>
+        <button onClick={save} disabled={create.isPending || update.isPending} className="btn-primary mt-3 w-full">
+          {(create.isPending || update.isPending) && <Loader2 className="animate-spin" width={16} height={16} />}
+          Salvar
+        </button>
       </Modal>
     </AdminShell>
   );

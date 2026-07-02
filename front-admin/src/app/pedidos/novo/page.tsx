@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { PAYMENT_METHOD_LABEL, type PaymentMethod } from "@cabana/shared";
 import { AdminShell } from "@/components/AdminShell";
@@ -144,6 +145,7 @@ export default function NewOrderPage() {
         <div className="flex items-center justify-between">
           <span className="font-display text-lg font-bold text-brand">{brl(total)}</span>
           <button onClick={submit} disabled={createOrder.isPending} className="btn-primary">
+            {createOrder.isPending && <Loader2 className="animate-spin" width={16} height={16} />}
             {createOrder.isPending ? "Criando…" : "Criar pedido"}
           </button>
         </div>

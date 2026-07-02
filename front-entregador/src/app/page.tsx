@@ -1,7 +1,8 @@
 "use client";
 import { CourierShell } from "@/components/CourierShell";
 import { DeliveryCard } from "@/components/DeliveryCard";
-import { Spinner, EmptyState } from "@/components/ui";
+import { EmptyState } from "@/components/ui";
+import { DeliveryListSkeleton } from "@/components/Skeleton";
 import { useDeliveries } from "@/lib/queries";
 import { useRequireAuth } from "@/lib/use-require-auth";
 
@@ -18,7 +19,7 @@ export default function DeliveriesPage() {
       <div className="p-4">
         <h2 className="mb-3 font-display text-lg font-bold text-ink">Minhas entregas</h2>
         {isLoading ? (
-          <Spinner />
+          <DeliveryListSkeleton count={3} />
         ) : active.length === 0 ? (
           <EmptyState emoji="✅" title="Tudo em dia!" subtitle="Nenhuma entrega atribuída no momento." />
         ) : (

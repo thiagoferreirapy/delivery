@@ -4,7 +4,8 @@ import { useOrders } from "@/lib/queries";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { brl, shortDate } from "@/lib/format";
 import { TabShell } from "@/components/TabShell";
-import { PageHeader, Spinner, EmptyState, StatusBadge } from "@/components/ui";
+import { PageHeader, EmptyState, StatusBadge } from "@/components/ui";
+import { OrderListSkeleton } from "@/components/Skeleton";
 
 export default function OrdersPage() {
   const { ready } = useRequireAuth();
@@ -14,7 +15,7 @@ export default function OrdersPage() {
     <TabShell>
       <PageHeader title="Meus pedidos" />
       {!ready || isLoading ? (
-        <Spinner />
+        <OrderListSkeleton count={4} />
       ) : orders.length === 0 ? (
         <EmptyState emoji="🧾" title="Nenhum pedido ainda" subtitle="Seus pedidos aparecem aqui." />
       ) : (

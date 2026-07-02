@@ -8,6 +8,7 @@ import { useAuthStore } from "@/lib/auth-store";
 import { disconnectSocket } from "@/lib/socket";
 import { TabShell } from "@/components/TabShell";
 import { PageHeader, Spinner } from "@/components/ui";
+import { Loader2 } from "lucide-react";
 import { IconPlus, IconMapPin } from "@/components/icons";
 
 const empty: AddressInput = {
@@ -122,6 +123,7 @@ export default function ProfilePage() {
               </label>
             </div>
             <button onClick={save} disabled={create.isPending || update.isPending} className="btn-primary mt-4 w-full">
+              {(create.isPending || update.isPending) && <Loader2 className="animate-spin" width={18} height={18} />}
               Salvar
             </button>
           </div>

@@ -3,7 +3,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { ORDER_STATUS_LABEL, type OrderStatus } from "@cabana/shared";
 import { AdminShell } from "@/components/AdminShell";
-import { PageTitle, Spinner, EmptyState, StatusBadge } from "@/components/ui";
+import { PageTitle, EmptyState, StatusBadge } from "@/components/ui";
+import { TableSkeleton } from "@/components/Skeleton";
 import { Icon } from "@/components/icons";
 import { useOrders } from "@/lib/queries";
 import { useRequireRole } from "@/lib/use-require-role";
@@ -45,7 +46,7 @@ export default function OrdersPage() {
       </div>
 
       {isLoading ? (
-        <Spinner />
+        <TableSkeleton />
       ) : orders.length === 0 ? (
         <EmptyState emoji="🧾" title="Nenhum pedido" />
       ) : (

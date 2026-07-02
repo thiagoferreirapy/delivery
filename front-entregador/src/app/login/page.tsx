@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import { useCourierLogin } from "@/lib/queries";
 import { ApiError } from "@/lib/api";
 
@@ -18,7 +20,9 @@ export default function CourierLoginPage() {
       await login.mutateAsync({ phone, password });
       router.replace("/");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Falha ao entrar");
+      const msg = err instanceof ApiError ? err.message : "Falha ao entrar";
+      setError(msg);
+      toast.error(msg);
     }
   }
 
@@ -35,6 +39,7 @@ export default function CourierLoginPage() {
           <input className="input" type="password" placeholder="Senha" value={password} onChange={(e) => setPassword(e.target.value)} required />
           {error && <p className="text-sm text-danger">{error}</p>}
           <button className="btn-primary mt-1" disabled={login.isPending}>
+            {login.isPending && <Loader2 className="animate-spin" width={18} height={18} />}
             {login.isPending ? "Entrando…" : "Entrar"}
           </button>
         </form>

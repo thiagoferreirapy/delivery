@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
 import { CourierShell } from "@/components/CourierShell";
-import { Spinner, EmptyState, StatusBadge } from "@/components/ui";
+import { EmptyState, StatusBadge } from "@/components/ui";
+import { HistoryListSkeleton } from "@/components/Skeleton";
 import { useDeliveries } from "@/lib/queries";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { brl, shortDate } from "@/lib/format";
@@ -17,7 +18,7 @@ export default function HistoryPage() {
       <div className="p-4">
         <h2 className="mb-3 font-display text-lg font-bold text-ink">Histórico</h2>
         {isLoading ? (
-          <Spinner />
+          <HistoryListSkeleton count={4} />
         ) : deliveries.length === 0 ? (
           <EmptyState emoji="📭" title="Sem entregas concluídas" />
         ) : (
