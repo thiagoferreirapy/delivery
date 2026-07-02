@@ -6,7 +6,7 @@ import type { CategoryDTO } from "@cabana/shared";
 // aba escolhida no header. Dá contexto visual sem duplicar o seletor.
 export function CategoryHero({ category, count }: { category: CategoryDTO; count: number }) {
   return (
-    <div className="relative mx-4 mb-3 h-32 overflow-hidden rounded-2xl bg-black/5">
+    <div className="relative mx-4 mb-3 mt-4 h-32 overflow-hidden rounded-2xl bg-black/5">
       {category.imageUrl && (
         <Image src={category.imageUrl} alt={category.name} fill sizes="480px" className="object-cover" />
       )}

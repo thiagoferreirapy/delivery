@@ -55,7 +55,7 @@ export default function HomePage() {
         ) : promo ? (
           <button
             onClick={() => router.push(`/produto/${promo.id}`)}
-            className="mx-4 mb-3 flex w-[calc(100%-2rem)] items-center gap-3 overflow-hidden rounded-2xl bg-brand p-4 text-left text-cream shadow-soft"
+            className="mx-4 mb-3 mt-4 flex w-[calc(100%-2rem)] items-center gap-3 overflow-hidden rounded-2xl bg-brand p-4 text-left text-cream shadow-soft"
           >
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-cream/80">Promoção</p>
