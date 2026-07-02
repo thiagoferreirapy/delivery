@@ -24,7 +24,7 @@ export default function HistoryPage() {
         ) : (
           <div className="flex flex-col gap-3">
             {deliveries.map((o) => (
-              <Link key={o.id} href={`/entrega/${o.id}`} className="card flex items-center justify-between p-3">
+              <Link key={o.id} href={`/entrega/${o.id}`} className="card flex items-center justify-between p-3 transition active:scale-[0.99] hover:shadow-cardHover">
                 <div>
                   <p className="font-semibold text-ink">{o.code}</p>
                   <p className="text-xs text-muted">{shortDate(o.createdAt)} · {o.address.neighborhood}</p>

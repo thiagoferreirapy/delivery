@@ -29,8 +29,10 @@ module.exports = {
         "3xl": "1.5rem",
       },
       boxShadow: {
-        soft: "0 2px 12px rgba(31, 27, 24, 0.08)",
-        card: "0 1px 3px rgba(31, 27, 24, 0.06), 0 4px 16px rgba(31, 27, 24, 0.05)",
+        // sombras "quase imperceptíveis" — feel iFood: macio, arejado
+        soft: "0 2px 12px rgba(31, 27, 24, 0.05)",
+        card: "0 2px 12px rgba(31, 27, 24, 0.04)",
+        cardHover: "0 4px 16px rgba(31, 27, 24, 0.06)",
       },
       maxWidth: {
         app: "480px", // container mobile-first

@@ -21,7 +21,7 @@ export default function OrdersPage() {
       ) : (
         <div className="flex flex-col gap-3 p-4">
           {orders.map((o) => (
-            <Link key={o.id} href={`/pedido/${o.id}`} className="card flex items-center gap-3 p-3">
+            <Link key={o.id} href={`/pedido/${o.id}`} className="card flex items-center gap-3 p-3 transition active:scale-[0.99] hover:shadow-cardHover">
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-ink">{o.code}</span>

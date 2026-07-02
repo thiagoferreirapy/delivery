@@ -37,7 +37,7 @@ export default function RoutePage() {
             </p>
             <div className="mt-4 flex flex-col gap-2">
               {inRoute.map((d) => (
-                <Link key={d.id} href={`/entrega/${d.id}`} className="card flex items-center justify-between p-3">
+                <Link key={d.id} href={`/entrega/${d.id}`} className="card flex items-center justify-between p-3 transition active:scale-[0.99] hover:shadow-cardHover">
                   <div>
                     <p className="font-semibold text-ink">{d.code}</p>
                     <p className="text-xs text-muted">{d.address.street}, {d.address.number} — {d.address.neighborhood}</p>
