@@ -89,6 +89,15 @@ já têm a assinatura pronta e leem as chaves do `.env`. Veja `backend/.env.exam
 - [x] Monorepo + pacote `shared`
 - [x] Backend completo (auth 3 escopos, RBAC, catálogo, pedidos, pagamentos PIX,
       cozinha, expedição, entregador+geoloc, uploads, dashboard, socket.io, seed)
-- [ ] `front-cliente` (cardápio → carrinho → checkout → tracking → avaliação) + Capacitor
+- [x] `front-cliente` — cardápio (header ML-style + categorias + grid) → produto →
+      carrinho → checkout (PIX QR + cartão/dinheiro) → tracking realtime (mapa +
+      timeline) → confirmar recebimento → avaliação → perfil/endereços. Capacitor pronto.
 - [ ] `front-admin` (cozinha kanban, expedição, CRUDs, dashboard)
 - [ ] `front-entregador` (entregas, rota, foto, confirmação de pagamento)
+
+### Rodar o app do cliente
+
+```bash
+cd front-cliente && pnpm dev      # http://localhost:3000  (backend precisa estar no ar)
+```
+Login de teste: `cliente@cabana.com` / `cliente123`. Empacotar mobile: veja `capacitor.config.ts`.

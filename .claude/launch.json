@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "front-cliente",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@cabana/front-cliente", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "backend",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@cabana/backend", "dev"],
+      "port": 4000
+    }
+  ]
+}
