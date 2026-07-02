@@ -14,6 +14,7 @@ interface Props {
   onCategory?: (id: string | null) => void;
   onBell?: () => void;
   onAvatar?: () => void;
+  notifCount?: number;
 }
 
 export function StickyHeader({
@@ -27,6 +28,7 @@ export function StickyHeader({
   onCategory,
   onBell,
   onAvatar,
+  notifCount = 0,
 }: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const ticking = useRef(false);
@@ -73,9 +75,14 @@ export function StickyHeader({
             type="button"
             aria-label="Notificações"
             onClick={onBell}
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-cream/20"
+            className="relative grid h-9 w-9 shrink-0 place-items-center rounded-full bg-cream/20"
           >
             <IconBell width={18} height={18} />
+            {notifCount > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-cream px-1 text-[10px] font-bold text-brand">
+                {notifCount > 9 ? "9+" : notifCount}
+              </span>
+            )}
           </button>
         </div>
 

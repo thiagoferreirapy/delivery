@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui";
 import { ProductGridSkeleton } from "@/components/Skeleton";
 import { useCategories, useProducts, useAddresses } from "@/lib/queries";
 import { useAuthStore } from "@/lib/auth-store";
+import { useNotificationsStore } from "@/lib/notifications-store";
 
 export default function HomePage() {
   const router = useRouter();
@@ -35,6 +36,9 @@ export default function HomePage() {
     () => categories.find((c) => c.id === category) ?? null,
     [categories, category]
   );
+  const notifCount = useNotificationsStore((s) => s.items.filter((n) => !n.read).length);
+  // há bloco de destaque acima do grid? (senão, o grid precisa de respiro do header)
+  const hasTopBlock = !search && (!!selectedCategory || !!promo);
 
   return (
     <TabShell>
@@ -47,8 +51,9 @@ export default function HomePage() {
         categories={categories}
         activeCategory={category}
         onCategory={setCategory}
-        onBell={() => router.push("/pedidos")}
+        onBell={() => router.push("/notificacoes")}
         onAvatar={() => setDrawerOpen(true)}
+        notifCount={notifCount}
       />
 
       <ProfileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
@@ -74,7 +79,7 @@ export default function HomePage() {
         ) : null)}
 
       {/* Grid de produtos */}
-      <section className="px-4">
+      <section className={`px-4 ${hasTopBlock ? "" : "pt-4"}`}>
         {isLoading ? (
           <ProductGridSkeleton count={8} />
         ) : products.length === 0 ? (
