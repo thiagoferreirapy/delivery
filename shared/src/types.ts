@@ -31,6 +31,17 @@ export interface CategoryDTO {
   active: boolean;
 }
 
+export interface ProductExtraDTO {
+  id: string;
+  name: string;
+  price: number;
+}
+
+export interface ProductRemovableDTO {
+  id: string;
+  name: string;
+}
+
 export interface ProductDTO {
   id: string;
   categoryId: string;
@@ -45,6 +56,18 @@ export interface ProductDTO {
   promoActive: boolean;
   promoPercent: number | null;
   finalPrice: number; // preço já com promoção aplicada
+  // Customização
+  maxExtras: number | null; // null = à vontade
+  maxRemovable: number | null; // null = à vontade
+  extras: ProductExtraDTO[];
+  removables: ProductRemovableDTO[];
+}
+
+// Item de pedido: extras escolhidos + ingredientes removidos
+export interface OrderItemExtra {
+  name: string;
+  price: number;
+  quantity: number;
 }
 
 export interface AddressDTO {
@@ -68,8 +91,10 @@ export interface OrderItemDTO {
   name: string;
   imageUrl: string | null;
   quantity: number;
-  unitPrice: number;
+  unitPrice: number; // já inclui extras
   notes: string | null;
+  extras: OrderItemExtra[];
+  removed: string[];
 }
 
 export interface OrderStatusHistoryDTO {

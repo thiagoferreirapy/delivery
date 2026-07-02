@@ -53,6 +53,7 @@ ordersRouter.post(
     const productIds = data.items.map((i) => i.productId);
     const products = await prisma.product.findMany({
       where: { id: { in: productIds }, active: true },
+      include: { extras: true, removables: true },
     });
     const byId = new Map(products.map((p) => [p.id, p]));
 
@@ -60,13 +61,41 @@ ordersRouter.post(
     const itemsData = data.items.map((item) => {
       const p = byId.get(item.productId);
       if (!p) throw badRequest(`Produto indisponível: ${item.productId}`);
-      const unit = finalPrice(dec(p.price), p.promoActive, p.promoPercent ?? null);
+      const base = finalPrice(dec(p.price), p.promoActive, p.promoPercent ?? null);
+
+      // Extras (validados contra o produto; preço vem do servidor)
+      const extraById = new Map(p.extras.map((e) => [e.id, e]));
+      const selectedExtras = (item.extras ?? []).map((sel) => {
+        const ex = extraById.get(sel.id);
+        if (!ex) throw badRequest(`Adicional inválido em ${p.name}`);
+        return { name: ex.name, price: dec(ex.price), quantity: sel.quantity };
+      });
+      const totalExtraQty = selectedExtras.reduce((n, e) => n + e.quantity, 0);
+      if (p.maxExtras != null && totalExtraQty > p.maxExtras) {
+        throw badRequest(`Máximo de ${p.maxExtras} adicionais em ${p.name}`);
+      }
+      const extrasSum = selectedExtras.reduce((s, e) => s + e.price * e.quantity, 0);
+
+      // Ingredientes removidos (validados)
+      const removableById = new Map(p.removables.map((r) => [r.id, r]));
+      const removedNames = (item.removedIds ?? []).map((id) => {
+        const r = removableById.get(id);
+        if (!r) throw badRequest(`Ingrediente inválido em ${p.name}`);
+        return r.name;
+      });
+      if (p.maxRemovable != null && removedNames.length > p.maxRemovable) {
+        throw badRequest(`Máximo de ${p.maxRemovable} remoções em ${p.name}`);
+      }
+
+      const unit = Math.round((base + extrasSum) * 100) / 100;
       subtotal += unit * item.quantity;
       return {
         productId: p.id,
         quantity: item.quantity,
         unitPrice: unit,
         notes: item.notes ?? null,
+        extrasJson: selectedExtras.length ? JSON.stringify(selectedExtras) : null,
+        removedJson: removedNames.length ? JSON.stringify(removedNames) : null,
       };
     });
     subtotal = Math.round(subtotal * 100) / 100;

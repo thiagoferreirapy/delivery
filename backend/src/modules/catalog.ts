@@ -64,6 +64,32 @@ categoriesRouter.delete(
 // ===================== Produtos =====================
 export const productsRouter = Router();
 
+// include padrão de produto (categoria + extras + ingredientes removíveis)
+const productInclude = {
+  category: true,
+  extras: { orderBy: { sortOrder: "asc" as const } },
+  removables: { orderBy: { sortOrder: "asc" as const } },
+};
+
+// separa os campos aninhados (extras/removables) dos campos simples do produto
+function splitProductData(data: any) {
+  const { extras, removables, ...rest } = data;
+  const nested: any = {};
+  if (extras !== undefined) {
+    nested.extras = {
+      deleteMany: {},
+      create: (extras ?? []).map((e: any, i: number) => ({ name: e.name, price: e.price, sortOrder: i })),
+    };
+  }
+  if (removables !== undefined) {
+    nested.removables = {
+      deleteMany: {},
+      create: (removables ?? []).map((r: any, i: number) => ({ name: r.name, sortOrder: i })),
+    };
+  }
+  return { rest, nested };
+}
+
 // GET /products  (?categoryId=&search=&all=1)
 productsRouter.get(
   "/",
@@ -75,7 +101,7 @@ productsRouter.get(
     if (search) where.name = { contains: search };
     const list = await prisma.product.findMany({
       where,
-      include: { category: true },
+      include: productInclude,
       orderBy: { name: "asc" },
     });
     res.json(list.map(serializeProduct));
@@ -88,7 +114,7 @@ productsRouter.get(
   asyncHandler(async (req, res) => {
     const p = await prisma.product.findUnique({
       where: { id: req.params.id },
-      include: { category: true },
+      include: productInclude,
     });
     if (!p) throw notFound("Produto não encontrado");
     res.json(serializeProduct(p));
@@ -100,7 +126,19 @@ productsRouter.post(
   ...adminOnly,
   asyncHandler(async (req, res) => {
     const data = parse(productSchema, req.body);
-    const p = await prisma.product.create({ data, include: { category: true } });
+    const { extras, removables, ...rest } = data;
+    const p = await prisma.product.create({
+      data: {
+        ...rest,
+        extras: extras?.length
+          ? { create: extras.map((e, i) => ({ name: e.name, price: e.price, sortOrder: i })) }
+          : undefined,
+        removables: removables?.length
+          ? { create: removables.map((r, i) => ({ name: r.name, sortOrder: i })) }
+          : undefined,
+      },
+      include: productInclude,
+    });
     res.status(201).json(serializeProduct(p));
   })
 );
@@ -110,10 +148,11 @@ productsRouter.patch(
   ...adminOnly,
   asyncHandler(async (req, res) => {
     const data = parse(productSchema.partial(), req.body);
+    const { rest, nested } = splitProductData(data);
     const p = await prisma.product.update({
       where: { id: req.params.id },
-      data,
-      include: { category: true },
+      data: { ...rest, ...nested },
+      include: productInclude,
     });
     res.json(serializeProduct(p));
   })
@@ -128,7 +167,7 @@ productsRouter.delete(
       const p = await prisma.product.update({
         where: { id: req.params.id },
         data: { active: false },
-        include: { category: true },
+        include: productInclude,
       });
       return res.json({ ...serializeProduct(p), softDeleted: true });
     }

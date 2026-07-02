@@ -13,6 +13,14 @@ import type {
 export const dec = (v: unknown): number => (v == null ? 0 : Number(v));
 const iso = (d: Date | null | undefined): string | null =>
   d ? new Date(d).toISOString() : null;
+function safeJson<T>(s: string | null | undefined, fallback: T): T {
+  if (!s) return fallback;
+  try {
+    return JSON.parse(s) as T;
+  } catch {
+    return fallback;
+  }
+}
 
 export function finalPrice(price: number, promoActive: boolean, promoPercent: number | null): number {
   if (promoActive && promoPercent && promoPercent > 0) {
@@ -50,6 +58,10 @@ export function serializeProduct(p: any): ProductDTO {
     promoActive: p.promoActive,
     promoPercent: p.promoPercent ?? null,
     finalPrice: finalPrice(price, p.promoActive, p.promoPercent ?? null),
+    maxExtras: p.maxExtras ?? null,
+    maxRemovable: p.maxRemovable ?? null,
+    extras: (p.extras ?? []).map((e: any) => ({ id: e.id, name: e.name, price: dec(e.price) })),
+    removables: (p.removables ?? []).map((r: any) => ({ id: r.id, name: r.name })),
   };
 }
 
@@ -102,6 +114,8 @@ export function serializeOrder(o: any): OrderDTO {
       quantity: it.quantity,
       unitPrice: dec(it.unitPrice),
       notes: it.notes ?? null,
+      extras: safeJson(it.extrasJson, [] as any[]),
+      removed: safeJson(it.removedJson, [] as string[]),
     })),
     address: serializeAddress(o.address),
     customer: {

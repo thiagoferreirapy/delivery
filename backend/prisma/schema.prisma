@@ -71,9 +71,37 @@ model Product {
   active       Boolean     @default(true)
   promoActive  Boolean     @default(false)
   promoPercent Int?
+  // Customização: null = sem limite (à vontade)
+  maxExtras    Int?
+  maxRemovable Int?
+  extras       ProductExtra[]
+  removables   ProductRemovable[]
   items        OrderItem[]
 
   @@index([categoryId])
+}
+
+// Ingrediente/adicional extra (com preço) que o cliente pode acrescentar
+model ProductExtra {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String
+  price     Decimal @default(0)
+  sortOrder Int     @default(0)
+
+  @@index([productId])
+}
+
+// Ingrediente que compõe o produto e que o cliente pode remover (sem custo)
+model ProductRemovable {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String
+  sortOrder Int     @default(0)
+
+  @@index([productId])
 }
 
 // ===== Pedidos =====
@@ -114,8 +142,10 @@ model OrderItem {
   productId String
   product   Product @relation(fields: [productId], references: [id])
   quantity  Int
-  unitPrice Decimal
+  unitPrice Decimal // já inclui os extras selecionados
   notes     String?
+  extrasJson  String? // JSON: [{ name, price, quantity }]
+  removedJson String? // JSON: ["ingrediente", ...]
 
   @@index([orderId])
 }

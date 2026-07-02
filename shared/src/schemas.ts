@@ -53,6 +53,13 @@ export const productSchema = z.object({
   active: z.boolean().optional(),
   promoActive: z.boolean().optional(),
   promoPercent: z.number().int().min(1).max(99).optional().nullable(),
+  // Customização (null/undefined = à vontade)
+  maxExtras: z.number().int().min(0).optional().nullable(),
+  maxRemovable: z.number().int().min(0).optional().nullable(),
+  extras: z
+    .array(z.object({ name: z.string().min(1), price: z.number().nonnegative() }))
+    .optional(),
+  removables: z.array(z.object({ name: z.string().min(1) })).optional(),
 });
 export type ProductInput = z.infer<typeof productSchema>;
 
@@ -61,6 +68,11 @@ export const orderItemInputSchema = z.object({
   productId: z.string().min(1),
   quantity: z.number().int().min(1),
   notes: z.string().optional().nullable(),
+  // extras escolhidos (id do ProductExtra + quantidade) e ingredientes removidos (id do ProductRemovable)
+  extras: z
+    .array(z.object({ id: z.string().min(1), quantity: z.number().int().min(1) }))
+    .optional(),
+  removedIds: z.array(z.string().min(1)).optional(),
 });
 
 export const createOrderSchema = z.object({

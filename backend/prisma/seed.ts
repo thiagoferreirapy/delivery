@@ -105,9 +105,18 @@ async function main() {
     { slug: "prato-feito", cat: "almoco", name: "Prato Feito da Cabana", price: 28.9, description: "Arroz, feijão, bife acebolado, salada e fritas.", ingredients: "Arroz, feijão, bife, cebola, alface, tomate, batata", prepNotes: "Servido quente." },
     { slug: "feijoada", cat: "almoco", name: "Feijoada Individual", price: 34.9, description: "Feijoada completa com acompanhamentos.", ingredients: "Feijão preto, carnes, arroz, couve, farofa, laranja", prepNotes: "Cozimento lento 4h." },
     { slug: "strogonoff", cat: "almoco", name: "Strogonoff de Frango", price: 26.5, description: "Cremoso, com arroz e batata palha.", ingredients: "Frango, creme de leite, molho, arroz, batata palha" },
-    { slug: "x-cabana", cat: "paes", name: "X-Cabana Especial", price: 24.9, description: "Hambúrguer artesanal 180g, cheddar, bacon e molho da casa.", ingredients: "Pão brioche, blend 180g, cheddar, bacon, alface, tomate", prepNotes: "Ponto da carne ao gosto.", promoActive: true, promoPercent: 20 },
-    { slug: "x-salada", cat: "paes", name: "X-Salada", price: 19.9, description: "Clássico com salada fresca.", ingredients: "Pão, hambúrguer, queijo, alface, tomate" },
-    { slug: "hot-dog", cat: "paes", name: "Hot Dog Prensado", price: 16.5, description: "Salsicha, purê, batata palha e molhos.", ingredients: "Pão, salsicha, purê, milho, batata palha" },
+    { slug: "x-cabana", cat: "paes", name: "X-Cabana Especial", price: 24.9, description: "Hambúrguer artesanal 180g, cheddar, bacon e molho da casa.", ingredients: "Pão brioche, blend 180g, cheddar, bacon, alface, tomate", prepNotes: "Ponto da carne ao gosto.", promoActive: true, promoPercent: 20,
+      maxExtras: 5, maxRemovable: null,
+      extras: [{ name: "Bacon extra", price: 4 }, { name: "Cheddar extra", price: 3 }, { name: "Ovo", price: 2.5 }, { name: "Hambúrguer extra 180g", price: 8 }],
+      removables: [{ name: "Alface" }, { name: "Tomate" }, { name: "Cebola" }, { name: "Molho da casa" }] },
+    { slug: "x-salada", cat: "paes", name: "X-Salada", price: 19.9, description: "Clássico com salada fresca.", ingredients: "Pão, hambúrguer, queijo, alface, tomate",
+      maxExtras: null, maxRemovable: 3,
+      extras: [{ name: "Queijo extra", price: 3 }, { name: "Bacon", price: 4 }],
+      removables: [{ name: "Alface" }, { name: "Tomate" }, { name: "Cebola" }] },
+    { slug: "hot-dog", cat: "paes", name: "Hot Dog Prensado", price: 16.5, description: "Salsicha, purê, batata palha e molhos.", ingredients: "Pão, salsicha, purê, milho, batata palha",
+      maxExtras: 3, maxRemovable: null,
+      extras: [{ name: "Cheddar", price: 2.5 }, { name: "Batata palha extra", price: 1.5 }, { name: "Salsicha extra", price: 3 }],
+      removables: [{ name: "Milho" }, { name: "Purê" }, { name: "Batata palha" }] },
     { slug: "brigadeiro", cat: "doces", name: "Brigadeiro Gourmet (6un)", price: 18.0, description: "Caixa com 6 brigadeiros gourmet.", ingredients: "Chocolate belga, leite condensado, granulado" },
     { slug: "pudim", cat: "doces", name: "Pudim de Leite", price: 12.9, description: "Fatia generosa de pudim caseiro.", ingredients: "Leite condensado, ovos, açúcar" },
     { slug: "bolo-cenoura", cat: "doces", name: "Bolo de Cenoura c/ Chocolate", price: 11.5, description: "Fatia com cobertura de chocolate.", ingredients: "Cenoura, farinha, ovos, chocolate", promoActive: true, promoPercent: 50 },
@@ -121,7 +130,9 @@ async function main() {
 
   for (const p of products) {
     const existing = await prisma.product.findFirst({ where: { name: p.name } });
-    const data = {
+    const extras = ((p as any).extras ?? []) as { name: string; price: number }[];
+    const removables = ((p as any).removables ?? []) as { name: string }[];
+    const data: any = {
       categoryId: catMap[p.cat]!,
       name: p.name,
       description: p.description ?? null,
@@ -131,9 +142,25 @@ async function main() {
       imageUrl: img(p.slug),
       promoActive: (p as any).promoActive ?? false,
       promoPercent: (p as any).promoPercent ?? null,
+      maxExtras: (p as any).maxExtras ?? null,
+      maxRemovable: (p as any).maxRemovable ?? null,
     };
-    if (existing) await prisma.product.update({ where: { id: existing.id }, data });
-    else await prisma.product.create({ data });
+    const extrasCreate = extras.map((e, i) => ({ name: e.name, price: e.price, sortOrder: i }));
+    const removablesCreate = removables.map((r, i) => ({ name: r.name, sortOrder: i }));
+    if (existing) {
+      await prisma.product.update({
+        where: { id: existing.id },
+        data: {
+          ...data,
+          extras: { deleteMany: {}, create: extrasCreate },
+          removables: { deleteMany: {}, create: removablesCreate },
+        },
+      });
+    } else {
+      await prisma.product.create({
+        data: { ...data, extras: { create: extrasCreate }, removables: { create: removablesCreate } },
+      });
+    }
   }
 
   console.log("✅ Seed concluído.");
