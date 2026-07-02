@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { StickyHeader } from "@/components/StickyHeader";
-import { CategoryPills } from "@/components/CategoryPills";
+import { CategoryHero } from "@/components/CategoryHero";
 import { ProductCard } from "@/components/ProductCard";
 import { TabShell } from "@/components/TabShell";
 import { EmptyState } from "@/components/ui";
@@ -29,6 +29,10 @@ export default function HomePage() {
   }, [addresses]);
 
   const promo = useMemo(() => products.find((p) => p.promoActive && p.promoPercent), [products]);
+  const selectedCategory = useMemo(
+    () => categories.find((c) => c.id === category) ?? null,
+    [categories, category]
+  );
 
   return (
     <TabShell>
@@ -44,25 +48,25 @@ export default function HomePage() {
         onBell={() => router.push("/pedidos")}
       />
 
-      {/* Categorias circulares */}
-      <CategoryPills categories={categories} active={category} onSelect={setCategory} />
-
-      {/* Banner promocional */}
-      {promo && !search && (
-        <button
-          onClick={() => router.push(`/produto/${promo.id}`)}
-          className="mx-4 mb-3 flex w-[calc(100%-2rem)] items-center gap-3 overflow-hidden rounded-2xl bg-brand p-4 text-left text-cream shadow-soft"
-        >
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-cream/80">Promoção</p>
-            <p className="font-display text-xl font-bold leading-tight">{promo.promoPercent}% OFF</p>
-            <p className="text-sm text-cream/90">{promo.name}</p>
-          </div>
-          <span className="ml-auto rounded-full bg-cream px-3 py-1.5 text-sm font-semibold text-brand">
-            Ver
-          </span>
-        </button>
-      )}
+      {/* Destaque: card da categoria selecionada; no "Tudo", banner de promoção */}
+      {!search &&
+        (selectedCategory ? (
+          <CategoryHero category={selectedCategory} count={products.length} />
+        ) : promo ? (
+          <button
+            onClick={() => router.push(`/produto/${promo.id}`)}
+            className="mx-4 mb-3 flex w-[calc(100%-2rem)] items-center gap-3 overflow-hidden rounded-2xl bg-brand p-4 text-left text-cream shadow-soft"
+          >
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-cream/80">Promoção</p>
+              <p className="text-xl font-bold leading-tight">{promo.promoPercent}% OFF</p>
+              <p className="text-sm text-cream/90">{promo.name}</p>
+            </div>
+            <span className="ml-auto rounded-full bg-cream px-3 py-1.5 text-sm font-semibold text-brand">
+              Ver
+            </span>
+          </button>
+        ) : null)}
 
       {/* Grid de produtos */}
       <section className="px-4">
