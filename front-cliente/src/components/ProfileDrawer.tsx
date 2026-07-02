@@ -1,4 +1,5 @@
 "use client";
+import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -17,6 +18,16 @@ export function ProfileDrawer({ open, onClose }: { open: boolean; onClose: () =>
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const clear = useAuthStore((s) => s.clear);
+
+  // Trava o scroll do fundo enquanto o drawer está aberto (só o painel rola).
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
 
   function go(href: string) {
     onClose();
@@ -49,7 +60,7 @@ export function ProfileDrawer({ open, onClose }: { open: boolean; onClose: () =>
         className={`absolute inset-y-0 left-0 flex w-[86%] max-w-[340px] flex-col bg-cream shadow-2xl transition-transform duration-200 ease-out ${open ? "translate-x-0" : "-translate-x-full"}`}
       >
         {/* cabeçalho do perfil */}
-        <div className="safe-top bg-white px-5 pb-5 pt-6">
+        <div className="bg-white px-5 pb-5 pt-[calc(1.5rem+env(safe-area-inset-top))]">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="truncate text-xl font-bold text-ink">{user?.name ?? "Visitante"}</p>
@@ -69,7 +80,7 @@ export function ProfileDrawer({ open, onClose }: { open: boolean; onClose: () =>
         </div>
 
         {/* menu */}
-        <nav className="flex flex-1 flex-col overflow-y-auto py-2">
+        <nav className="flex flex-1 flex-col overflow-y-auto overscroll-contain py-2">
           {items.map(({ label, icon: Icon, href }) => (
             <button
               key={label}
@@ -99,7 +110,7 @@ export function ProfileDrawer({ open, onClose }: { open: boolean; onClose: () =>
           )}
         </nav>
 
-        <footer className="safe-bottom px-5 py-4 text-xs text-muted">
+        <footer className="px-5 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-xs text-muted">
           © {new Date().getFullYear()} Cabana Lanches
         </footer>
       </aside>
