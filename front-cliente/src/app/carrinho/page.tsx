@@ -1,17 +1,17 @@
 "use client";
 import Image from "next/image";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useCartStore } from "@/lib/cart-store";
 import { brl } from "@/lib/format";
 import { DELIVERY_FEE_DISPLAY } from "@/lib/config";
 import { TabShell } from "@/components/TabShell";
 import { PageHeader, EmptyState } from "@/components/ui";
-import { IconMinus, IconPlus } from "@/components/icons";
+import { IconMinus, IconPlus, IconCart } from "@/components/icons";
+import { Loader2 } from "lucide-react";
 import { useAuthStore } from "@/lib/auth-store";
+import { useNav } from "@/lib/use-nav";
 
 export default function CartPage() {
-  const router = useRouter();
+  const { navigate, pending } = useNav();
   const items = useCartStore((s) => s.items);
   const setQty = useCartStore((s) => s.setQty);
   const remove = useCartStore((s) => s.remove);
@@ -24,9 +24,12 @@ export default function CartPage() {
     return (
       <TabShell>
         <PageHeader title="Meu pedido" />
-        <EmptyState emoji="🛒" title="Seu carrinho está vazio" subtitle="Adicione itens do cardápio." />
+        <EmptyState icon={<IconCart width={30} height={30} />} title="Seu carrinho está vazio" subtitle="Adicione itens do cardápio." />
         <div className="px-4">
-          <Link href="/" className="btn-primary w-full">Ver cardápio</Link>
+          <button onClick={() => navigate("/")} disabled={pending} className="btn-primary w-full">
+            {pending && <Loader2 className="animate-spin" width={18} height={18} />}
+            Ver cardápio
+          </button>
         </div>
       </TabShell>
     );
@@ -89,9 +92,11 @@ export default function CartPage() {
             </div>
           </dl>
           <button
-            onClick={() => router.push(user ? "/checkout" : "/login")}
+            onClick={() => navigate(user ? "/checkout" : "/login")}
+            disabled={pending}
             className="btn-primary w-full"
           >
+            {pending && <Loader2 className="animate-spin" width={18} height={18} />}
             {user ? "Fazer pedido" : "Entrar para finalizar"}
           </button>
         </div>

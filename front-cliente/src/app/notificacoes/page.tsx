@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { TabShell } from "@/components/TabShell";
 import { PageHeader, EmptyState } from "@/components/ui";
-import { IconReceipt, IconBell } from "@/components/icons";
+import { IconReceipt, IconBell, IconBellOff } from "@/components/icons";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useNotificationsStore } from "@/lib/notifications-store";
 
@@ -50,7 +50,7 @@ export default function NotificationsPage() {
       <h2 className="px-4 pb-1 pt-4 text-sm font-semibold text-ink">Avisos</h2>
 
       {items.length === 0 ? (
-        <EmptyState emoji="🔔" title="Nenhuma notificação" subtitle="Avisamos aqui sobre o andamento dos seus pedidos." />
+        <EmptyState icon={<IconBellOff width={30} height={30} />} title="Nenhuma notificação" subtitle="Avisamos aqui sobre o andamento dos seus pedidos." />
       ) : (
         <div className="flex flex-col gap-2 px-4">
           {items.map((n) => (

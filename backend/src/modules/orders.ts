@@ -1,17 +1,19 @@
 import { Router } from "express";
 import {
   createOrderSchema,
+  quoteSchema,
   updateStatusSchema,
   ratingSchema,
   type OrderStatus,
+  type QuoteDTO,
   type TransitionActor,
 } from "@cabana/shared";
 import { prisma } from "../lib/prisma.js";
 import { parse } from "../lib/validate.js";
 import { asyncHandler, badRequest, forbidden, notFound, conflict } from "../lib/errors.js";
 import { authenticate } from "../middlewares/auth.js";
-import { env } from "../config/env.js";
-import { finalPrice, dec, serializeOrder, orderInclude } from "../lib/serialize.js";
+import { serializeOrder, orderInclude } from "../lib/serialize.js";
+import { priceOrder } from "../services/pricing.js";
 import {
   generateOrderCode,
   loadOrderDTO,
@@ -49,85 +51,59 @@ ordersRouter.post(
     const address = await prisma.address.findFirst({ where: { id: data.addressId, userId } });
     if (!address) throw badRequest("Endereço inválido para este cliente");
 
-    // preços vêm do servidor (nunca do client) — com promoção aplicada
-    const productIds = data.items.map((i) => i.productId);
-    const products = await prisma.product.findMany({
-      where: { id: { in: productIds }, active: true },
-      include: { extras: true, removables: true },
+    // Cálculo autoritativo (promoção + PIX + cupom) no servidor
+    const pricing = await priceOrder({
+      items: data.items,
+      paymentMethod: data.paymentMethod,
+      couponCode: data.couponCode ?? null,
     });
-    const byId = new Map(products.map((p) => [p.id, p]));
-
-    let subtotal = 0;
-    const itemsData = data.items.map((item) => {
-      const p = byId.get(item.productId);
-      if (!p) throw badRequest(`Produto indisponível: ${item.productId}`);
-      const base = finalPrice(dec(p.price), p.promoActive, p.promoPercent ?? null);
-
-      // Extras (validados contra o produto; preço vem do servidor)
-      const extraById = new Map(p.extras.map((e) => [e.id, e]));
-      const selectedExtras = (item.extras ?? []).map((sel) => {
-        const ex = extraById.get(sel.id);
-        if (!ex) throw badRequest(`Adicional inválido em ${p.name}`);
-        return { name: ex.name, price: dec(ex.price), quantity: sel.quantity };
-      });
-      const totalExtraQty = selectedExtras.reduce((n, e) => n + e.quantity, 0);
-      if (p.maxExtras != null && totalExtraQty > p.maxExtras) {
-        throw badRequest(`Máximo de ${p.maxExtras} adicionais em ${p.name}`);
-      }
-      const extrasSum = selectedExtras.reduce((s, e) => s + e.price * e.quantity, 0);
-
-      // Ingredientes removidos (validados)
-      const removableById = new Map(p.removables.map((r) => [r.id, r]));
-      const removedNames = (item.removedIds ?? []).map((id) => {
-        const r = removableById.get(id);
-        if (!r) throw badRequest(`Ingrediente inválido em ${p.name}`);
-        return r.name;
-      });
-      if (p.maxRemovable != null && removedNames.length > p.maxRemovable) {
-        throw badRequest(`Máximo de ${p.maxRemovable} remoções em ${p.name}`);
-      }
-
-      const unit = Math.round((base + extrasSum) * 100) / 100;
-      subtotal += unit * item.quantity;
-      return {
-        productId: p.id,
-        quantity: item.quantity,
-        unitPrice: unit,
-        notes: item.notes ?? null,
-        extrasJson: selectedExtras.length ? JSON.stringify(selectedExtras) : null,
-        removedJson: removedNames.length ? JSON.stringify(removedNames) : null,
-      };
-    });
-    subtotal = Math.round(subtotal * 100) / 100;
-    const deliveryFee = env.deliveryFee;
-    const total = Math.round((subtotal + deliveryFee) * 100) / 100;
+    // Se o cliente informou um cupom mas ele é inválido, não deixa passar em silêncio
+    if (data.couponCode && pricing.couponError) throw badRequest(pricing.couponError);
 
     const code = await generateOrderCode();
     const isPix = data.paymentMethod === "PIX";
 
-    const order = await prisma.order.create({
-      data: {
-        code,
-        userId,
-        addressId: address.id,
-        status: "PENDING",
-        paymentMethod: data.paymentMethod,
-        subtotal,
-        deliveryFee,
-        total,
-        notes: data.notes ?? null,
-        items: { create: itemsData },
-        payment: {
-          create: {
-            method: data.paymentMethod,
-            amount: total,
-            status: isPix ? "PENDING" : "CONFIRMED_ON_DELIVERY",
+    // Cria o pedido e, se houver cupom, incrementa o uso — atomicamente
+    const [order] = await prisma.$transaction([
+      prisma.order.create({
+        data: {
+          code,
+          userId,
+          addressId: address.id,
+          status: "PENDING",
+          paymentMethod: data.paymentMethod,
+          subtotal: pricing.subtotal,
+          deliveryFee: pricing.deliveryFee,
+          discount: pricing.discount,
+          total: pricing.total,
+          couponId: pricing.coupon?.id ?? null,
+          couponCode: pricing.coupon?.code ?? null,
+          notes: data.notes ?? null,
+          items: {
+            create: pricing.items.map((it) => ({
+              productId: it.productId,
+              quantity: it.quantity,
+              unitPrice: it.unitPrice,
+              notes: it.notes,
+              extrasJson: it.extrasJson,
+              removedJson: it.removedJson,
+            })),
           },
+          payment: {
+            create: {
+              method: data.paymentMethod,
+              amount: pricing.total,
+              status: isPix ? "PENDING" : "CONFIRMED_ON_DELIVERY",
+            },
+          },
+          history: { create: { status: "PENDING", changedByEmployee: "system" } },
         },
-        history: { create: { status: "PENDING", changedByEmployee: "system" } },
-      },
-      include: orderInclude,
-    });
+        include: orderInclude,
+      }),
+      ...(pricing.coupon
+        ? [prisma.coupon.update({ where: { id: pricing.coupon.id }, data: { usedCount: { increment: 1 } } })]
+        : []),
+    ]);
 
     // Cartão/dinheiro: pagamento na entrega -> já entra em CONFIRMED
     if (!isPix) {
@@ -142,6 +118,32 @@ ordersRouter.post(
     }
 
     res.status(201).json(serializeOrder(order));
+  })
+);
+
+// POST /orders/quote — prévia de preços (subtotal, PIX, cupom, total) sem gravar
+ordersRouter.post(
+  "/quote",
+  asyncHandler(async (req, res) => {
+    const data = parse(quoteSchema, req.body);
+    const pricing = await priceOrder({
+      items: data.items,
+      paymentMethod: data.paymentMethod,
+      couponCode: data.couponCode ?? null,
+    });
+    const quote: QuoteDTO = {
+      paymentMethod: data.paymentMethod,
+      subtotal: pricing.subtotal,
+      pixSavings: pricing.pixSavings,
+      discount: pricing.discount,
+      deliveryFee: pricing.deliveryFee,
+      total: pricing.total,
+      coupon: pricing.coupon
+        ? { code: pricing.coupon.code, description: pricing.coupon.description }
+        : null,
+      couponError: pricing.couponError,
+    };
+    res.json(quote);
   })
 );
 

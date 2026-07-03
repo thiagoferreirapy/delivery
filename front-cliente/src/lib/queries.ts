@@ -11,6 +11,11 @@ import type {
   OrderDTO,
   AuthResponse,
   AddressInput,
+  AuthUser,
+  UpdateProfileInput,
+  ChangePasswordInput,
+  QuoteDTO,
+  PaymentMethod,
 } from "@cabana/shared";
 import { api } from "./api";
 import { useAuthStore } from "./auth-store";
@@ -74,6 +79,28 @@ export function useAuthMutations() {
 }
 
 // ===== Perfil / endereços =====
+type MeResponse = { id: string; name: string; email: string; phone: string | null };
+
+export function useUpdateProfile() {
+  const qc = useQueryClient();
+  const updateUser = useAuthStore((s) => s.updateUser);
+  return useMutation({
+    mutationFn: (input: UpdateProfileInput) =>
+      api<MeResponse>("/me", { method: "PATCH", body: input }),
+    onSuccess: (me) => {
+      updateUser({ name: me.name, phone: me.phone } as Partial<AuthUser>);
+      qc.invalidateQueries();
+    },
+  });
+}
+
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: (input: ChangePasswordInput) =>
+      api<{ ok: boolean }>("/me/password", { method: "PATCH", body: input }),
+  });
+}
+
 export function useAddresses() {
   const token = useAuthStore((s) => s.token);
   return useQuery({
@@ -123,17 +150,33 @@ export function useOrder(id: string, opts?: { poll?: boolean }) {
   });
 }
 
+export interface QuoteItemInput {
+  productId: string;
+  quantity: number;
+  notes?: string;
+  extras?: { id: string; quantity: number }[];
+  removedIds?: string[];
+}
+
 export interface CreateOrderPayload {
   addressId: string;
   paymentMethod: "PIX" | "CREDIT_CARD" | "DEBIT_CARD" | "CASH";
-  items: {
-    productId: string;
-    quantity: number;
-    notes?: string;
-    extras?: { id: string; quantity: number }[];
-    removedIds?: string[];
-  }[];
+  items: QuoteItemInput[];
   notes?: string;
+  couponCode?: string | null;
+}
+
+// Prévia de preços do checkout (subtotal, desconto PIX, cupom, total) — recalcula
+// no servidor sempre que método de pagamento, itens ou cupom mudam.
+export function useQuote(
+  payload: { paymentMethod: PaymentMethod; items: QuoteItemInput[]; couponCode?: string | null } | null
+) {
+  return useQuery({
+    queryKey: ["quote", payload],
+    queryFn: () => api<QuoteDTO>("/orders/quote", { method: "POST", body: payload }),
+    enabled: !!payload && payload.items.length > 0,
+    placeholderData: (prev) => prev, // mantém o valor anterior enquanto recalcula
+  });
 }
 
 export function useCreateOrder() {

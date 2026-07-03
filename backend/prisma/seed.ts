@@ -105,11 +105,11 @@ async function main() {
     { slug: "prato-feito", cat: "almoco", name: "Prato Feito da Cabana", price: 28.9, description: "Arroz, feijão, bife acebolado, salada e fritas.", ingredients: "Arroz, feijão, bife, cebola, alface, tomate, batata", prepNotes: "Servido quente." },
     { slug: "feijoada", cat: "almoco", name: "Feijoada Individual", price: 34.9, description: "Feijoada completa com acompanhamentos.", ingredients: "Feijão preto, carnes, arroz, couve, farofa, laranja", prepNotes: "Cozimento lento 4h." },
     { slug: "strogonoff", cat: "almoco", name: "Strogonoff de Frango", price: 26.5, description: "Cremoso, com arroz e batata palha.", ingredients: "Frango, creme de leite, molho, arroz, batata palha" },
-    { slug: "x-cabana", cat: "paes", name: "X-Cabana Especial", price: 24.9, description: "Hambúrguer artesanal 180g, cheddar, bacon e molho da casa.", ingredients: "Pão brioche, blend 180g, cheddar, bacon, alface, tomate", prepNotes: "Ponto da carne ao gosto.", promoActive: true, promoPercent: 20,
+    { slug: "x-cabana", cat: "paes", name: "X-Cabana Especial", price: 24.9, description: "Hambúrguer artesanal 180g, cheddar, bacon e molho da casa.", ingredients: "Pão brioche, blend 180g, cheddar, bacon, alface, tomate", prepNotes: "Ponto da carne ao gosto.", promoActive: true, promoPercent: 20, pixPromoActive: true, pixPromoPercent: 10,
       maxExtras: 5, maxRemovable: null,
       extras: [{ name: "Bacon extra", price: 4 }, { name: "Cheddar extra", price: 3 }, { name: "Ovo", price: 2.5 }, { name: "Hambúrguer extra 180g", price: 8 }],
       removables: [{ name: "Alface" }, { name: "Tomate" }, { name: "Cebola" }, { name: "Molho da casa" }] },
-    { slug: "x-salada", cat: "paes", name: "X-Salada", price: 19.9, description: "Clássico com salada fresca.", ingredients: "Pão, hambúrguer, queijo, alface, tomate",
+    { slug: "x-salada", cat: "paes", name: "X-Salada", price: 19.9, description: "Clássico com salada fresca.", ingredients: "Pão, hambúrguer, queijo, alface, tomate", pixPromoActive: true, pixPromoPercent: 8,
       maxExtras: null, maxRemovable: 3,
       extras: [{ name: "Queijo extra", price: 3 }, { name: "Bacon", price: 4 }],
       removables: [{ name: "Alface" }, { name: "Tomate" }, { name: "Cebola" }] },
@@ -142,6 +142,8 @@ async function main() {
       imageUrl: img(p.slug),
       promoActive: (p as any).promoActive ?? false,
       promoPercent: (p as any).promoPercent ?? null,
+      pixPromoActive: (p as any).pixPromoActive ?? false,
+      pixPromoPercent: (p as any).pixPromoPercent ?? null,
       maxExtras: (p as any).maxExtras ?? null,
       maxRemovable: (p as any).maxRemovable ?? null,
     };
@@ -161,6 +163,19 @@ async function main() {
         data: { ...data, extras: { create: extrasCreate }, removables: { create: removablesCreate } },
       });
     }
+  }
+
+  // ===== Cupons demo =====
+  const coupons = [
+    { code: "CABANA10", description: "10% OFF em todo o cardápio", type: "PERCENT", value: 10, appliesTo: "ALL", minSubtotal: null as number | null },
+    { code: "PIX15", description: "R$ 15 OFF acima de R$ 60", type: "FIXED", value: 15, appliesTo: "ALL", minSubtotal: 60 },
+  ];
+  for (const c of coupons) {
+    await prisma.coupon.upsert({
+      where: { code: c.code },
+      update: { description: c.description, type: c.type, value: c.value, appliesTo: c.appliesTo, minSubtotal: c.minSubtotal, active: true },
+      create: { code: c.code, description: c.description, type: c.type, value: c.value, appliesTo: c.appliesTo, minSubtotal: c.minSubtotal },
+    });
   }
 
   console.log("✅ Seed concluído.");

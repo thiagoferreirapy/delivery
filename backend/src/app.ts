@@ -10,6 +10,7 @@ import { notFoundHandler, errorHandler } from "./middlewares/error.js";
 import { authRouter } from "./modules/auth.js";
 import { usersRouter } from "./modules/users.js";
 import { categoriesRouter, productsRouter } from "./modules/catalog.js";
+import { couponsRouter } from "./modules/coupons.js";
 import { ordersRouter } from "./modules/orders.js";
 import { paymentsRouter } from "./modules/payments.js";
 import { kitchenRouter } from "./modules/kitchen.js";
@@ -46,6 +47,7 @@ export function createApp() {
   app.use("/me", usersRouter);
   app.use("/categories", categoriesRouter);
   app.use("/products", productsRouter);
+  app.use("/coupons", couponsRouter);
   app.use("/orders", ordersRouter);
   app.use("/payments", paymentsRouter);
   app.use("/kitchen", kitchenRouter);

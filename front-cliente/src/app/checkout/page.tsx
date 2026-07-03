@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PAYMENT_METHOD_LABEL, type PaymentMethod } from "@cabana/shared";
-import { useAddresses, useCreateOrder, useCreatePix, useSimulatePix, useOrder } from "@/lib/queries";
+import { useAddresses, useCreateOrder, useCreatePix, useSimulatePix, useOrder, useQuote, type QuoteItemInput } from "@/lib/queries";
 import { useCartStore } from "@/lib/cart-store";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { brl } from "@/lib/format";
@@ -27,6 +27,9 @@ export default function CheckoutPage() {
   const [method, setMethod] = useState<PaymentMethod>("PIX");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCode, setAppliedCode] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   // etapa PIX
   const [pixOrderId, setPixOrderId] = useState<string | null>(null);
@@ -51,8 +54,27 @@ export default function CheckoutPage() {
     if (def && !addressId) setAddressId(def.id);
   }, [addresses, addressId]);
 
-  const subtotal = useMemo(() => items.reduce((n, i) => n + i.unitPrice * i.quantity, 0), [items]);
-  const total = subtotal + (items.length ? DELIVERY_FEE_DISPLAY : 0);
+  const quoteItems = useMemo<QuoteItemInput[]>(
+    () =>
+      items.map((i) => ({
+        productId: i.productId,
+        quantity: i.quantity,
+        notes: i.notes,
+        extras: i.extras.map((e) => ({ id: e.id, quantity: e.quantity })),
+        removedIds: i.removed.map((r) => r.id),
+      })),
+    [items]
+  );
+  const { data: quote, isFetching: quoting } = useQuote(
+    items.length ? { paymentMethod: method, items: quoteItems, couponCode: appliedCode } : null
+  );
+
+  // Enquanto a 1ª prévia carrega, usa um cálculo local aproximado.
+  const localSubtotal = useMemo(() => items.reduce((n, i) => n + i.unitPrice * i.quantity, 0), [items]);
+  const displaySubtotal = quote ? quote.subtotal + quote.pixSavings : localSubtotal;
+  const total = quote ? quote.total : localSubtotal + (items.length ? DELIVERY_FEE_DISPLAY : 0);
+  const couponApplied = !!quote?.coupon;
+  const couponError = appliedCode && quote && !quote.coupon ? quote.couponError : null;
 
   if (!ready) return <Spinner />;
 
@@ -61,17 +83,13 @@ export default function CheckoutPage() {
     if (!addressId) return setError("Escolha um endereço de entrega");
     if (items.length === 0) return setError("Carrinho vazio");
     try {
+      setSubmitting(true);
       const order = await createOrder.mutateAsync({
         addressId,
         paymentMethod: method,
-        items: items.map((i) => ({
-          productId: i.productId,
-          quantity: i.quantity,
-          notes: i.notes,
-          extras: i.extras.map((e) => ({ id: e.id, quantity: e.quantity })),
-          removedIds: i.removed.map((r) => r.id),
-        })),
+        items: quoteItems,
         notes: notes || undefined,
+        couponCode: couponApplied ? appliedCode : undefined,
       });
       if (method === "PIX") {
         setPixOrderId(order.id);
@@ -85,6 +103,7 @@ export default function CheckoutPage() {
       const msg = e?.message ?? "Falha ao criar pedido";
       setError(msg);
       toast.error(msg);
+      setSubmitting(false);
     }
   }
 
@@ -180,10 +199,78 @@ export default function CheckoutPage() {
           )}
         </section>
 
+        {/* Cupom */}
+        <section>
+          <h2 className="mb-2 font-semibold text-ink">Cupom de desconto</h2>
+          {couponApplied ? (
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-success/30 bg-success/5 p-3">
+              <div className="min-w-0 text-sm">
+                <span className="font-semibold text-success">{quote!.coupon!.code}</span>
+                {quote!.coupon!.description && (
+                  <span className="block truncate text-xs text-muted">{quote!.coupon!.description}</span>
+                )}
+              </div>
+              <button
+                onClick={() => { setAppliedCode(null); setCouponInput(""); }}
+                className="shrink-0 text-sm font-semibold text-danger"
+              >
+                Remover
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <input
+                value={couponInput}
+                onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                placeholder="Digite o código"
+                className="input flex-1 uppercase placeholder:normal-case"
+              />
+              <button
+                onClick={() => setAppliedCode(couponInput.trim() || null)}
+                disabled={!couponInput.trim() || quoting}
+                className="btn-ghost shrink-0"
+              >
+                Aplicar
+              </button>
+            </div>
+          )}
+          {couponError && <p className="mt-1 text-sm text-danger">{couponError}</p>}
+        </section>
+
         {/* Observações */}
         <section>
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Observações do pedido (opcional)" className="input min-h-[56px] resize-none" />
         </section>
+
+        {/* Resumo de valores */}
+        {items.length > 0 && (
+          <section className="card flex flex-col gap-1.5 p-3 text-sm">
+            <div className="flex justify-between text-muted">
+              <span>Subtotal</span>
+              <span className="tabular-nums text-ink">{brl(displaySubtotal)}</span>
+            </div>
+            {quote && quote.pixSavings > 0 && (
+              <div className="flex justify-between text-success">
+                <span>Desconto PIX</span>
+                <span className="tabular-nums">- {brl(quote.pixSavings)}</span>
+              </div>
+            )}
+            {quote && quote.discount > 0 && (
+              <div className="flex justify-between text-success">
+                <span>Cupom {quote.coupon?.code}</span>
+                <span className="tabular-nums">- {brl(quote.discount)}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-muted">
+              <span>Taxa de entrega</span>
+              <span className="tabular-nums text-ink">{brl(quote ? quote.deliveryFee : DELIVERY_FEE_DISPLAY)}</span>
+            </div>
+            <div className="mt-1 flex justify-between border-t border-black/5 pt-1.5 font-semibold text-ink">
+              <span>Total</span>
+              <span className="tabular-nums">{brl(total)}</span>
+            </div>
+          </section>
+        )}
 
         {error && <p className="text-sm text-danger">{error}</p>}
       </div>
@@ -194,9 +281,9 @@ export default function CheckoutPage() {
             <span className="block text-muted">Total</span>
             <span className="text-lg font-semibold text-ink tabular-nums">{brl(total)}</span>
           </div>
-          <button onClick={placeOrder} disabled={createOrder.isPending} className="btn-primary flex-1">
-            {createOrder.isPending && <Loader2 className="animate-spin" width={18} height={18} />}
-            {createOrder.isPending ? "Enviando…" : method === "PIX" ? "Pagar com PIX" : "Confirmar pedido"}
+          <button onClick={placeOrder} disabled={submitting} className="btn-primary flex-1">
+            {submitting && <Loader2 className="animate-spin" width={18} height={18} />}
+            {submitting ? "Enviando…" : method === "PIX" ? "Pagar com PIX" : "Confirmar pedido"}
           </button>
         </div>
       </div>

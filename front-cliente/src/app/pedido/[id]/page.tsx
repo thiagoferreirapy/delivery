@@ -9,6 +9,7 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 import { getSocket } from "@/lib/socket";
 import { brl } from "@/lib/format";
 import { PageHeader, EmptyState, StatusBadge, Stars } from "@/components/ui";
+import { IconFileX } from "@/components/icons";
 import { OrderTrackingSkeleton } from "@/components/Skeleton";
 import { Loader2 } from "lucide-react";
 import { StatusTimeline } from "@/components/StatusTimeline";
@@ -47,7 +48,7 @@ export default function TrackOrderPage() {
   }, [id, ready, qc]);
 
   if (!ready || isLoading) return <OrderTrackingSkeleton />;
-  if (!order) return <EmptyState emoji="😕" title="Pedido não encontrado" />;
+  if (!order) return <EmptyState icon={<IconFileX width={30} height={30} />} title="Pedido não encontrado" />;
 
   const courier = order.courier;
   const liveCourier =

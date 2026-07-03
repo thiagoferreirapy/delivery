@@ -7,6 +7,7 @@ interface AuthState {
   user: AuthUser | null;
   token: string | null;
   setAuth: (user: AuthUser, token: string) => void;
+  updateUser: (patch: Partial<AuthUser>) => void;
   clear: () => void;
 }
 
@@ -16,6 +17,7 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       token: null,
       setAuth: (user, token) => set({ user, token }),
+      updateUser: (patch) => set((s) => (s.user ? { user: { ...s.user, ...patch } } : s)),
       clear: () => set({ user: null, token: null }),
     }),
     { name: "cabana-cliente-auth" }

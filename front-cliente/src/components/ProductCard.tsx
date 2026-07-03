@@ -45,6 +45,11 @@ export function ProductCard({ product }: { product: ProductDTO }) {
             <span className="text-xs text-neutral-400 line-through">{brl(product.price)}</span>
           )}
         </div>
+        {product.pixPromoActive && product.pixFinalPrice < product.finalPrice && (
+          <p className="mt-0.5 text-[11px] font-semibold text-success tabular-nums">
+            {brl(product.pixFinalPrice)} no PIX
+          </p>
+        )}
       </div>
     </Link>
   );

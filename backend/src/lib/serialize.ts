@@ -1,6 +1,7 @@
 import type {
   ProductDTO,
   CategoryDTO,
+  CouponDTO,
   AddressDTO,
   OrderDTO,
   CourierPublicDTO,
@@ -29,6 +30,14 @@ export function finalPrice(price: number, promoActive: boolean, promoPercent: nu
   return price;
 }
 
+// Aplica o desconto adicional de PIX sobre um preço já promocional.
+export function pixPrice(base: number, pixActive: boolean, pixPercent: number | null): number {
+  if (pixActive && pixPercent && pixPercent > 0) {
+    return Math.round(base * (1 - pixPercent / 100) * 100) / 100;
+  }
+  return base;
+}
+
 export function serializeCategory(c: any): CategoryDTO {
   return {
     id: c.id,
@@ -42,6 +51,7 @@ export function serializeCategory(c: any): CategoryDTO {
 
 export function serializeProduct(p: any): ProductDTO {
   const price = dec(p.price);
+  const final = finalPrice(price, p.promoActive, p.promoPercent ?? null);
   return {
     id: p.id,
     categoryId: p.categoryId,
@@ -57,11 +67,33 @@ export function serializeProduct(p: any): ProductDTO {
     active: p.active,
     promoActive: p.promoActive,
     promoPercent: p.promoPercent ?? null,
-    finalPrice: finalPrice(price, p.promoActive, p.promoPercent ?? null),
+    finalPrice: final,
+    pixPromoActive: p.pixPromoActive ?? false,
+    pixPromoPercent: p.pixPromoPercent ?? null,
+    pixFinalPrice: pixPrice(final, p.pixPromoActive ?? false, p.pixPromoPercent ?? null),
     maxExtras: p.maxExtras ?? null,
     maxRemovable: p.maxRemovable ?? null,
     extras: (p.extras ?? []).map((e: any) => ({ id: e.id, name: e.name, price: dec(e.price) })),
     removables: (p.removables ?? []).map((r: any) => ({ id: r.id, name: r.name })),
+  };
+}
+
+export function serializeCoupon(c: any): CouponDTO {
+  return {
+    id: c.id,
+    code: c.code,
+    description: c.description ?? null,
+    type: c.type,
+    value: dec(c.value),
+    active: c.active,
+    expiresAt: iso(c.expiresAt),
+    minSubtotal: c.minSubtotal == null ? null : dec(c.minSubtotal),
+    maxUses: c.maxUses ?? null,
+    usedCount: c.usedCount,
+    appliesTo: c.appliesTo,
+    categoryId: c.categoryId ?? null,
+    productIds: (c.products ?? []).map((p: any) => p.id),
+    createdAt: iso(c.createdAt)!,
   };
 }
 
@@ -104,7 +136,9 @@ export function serializeOrder(o: any): OrderDTO {
     paymentStatus: (o.payment?.status ?? null) as PaymentStatus | null,
     subtotal: dec(o.subtotal),
     deliveryFee: dec(o.deliveryFee),
+    discount: dec(o.discount),
     total: dec(o.total),
+    couponCode: o.couponCode ?? null,
     notes: o.notes ?? null,
     items: (o.items ?? []).map((it: any) => ({
       id: it.id,

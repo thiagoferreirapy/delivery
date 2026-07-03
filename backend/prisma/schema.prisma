@@ -56,6 +56,7 @@ model Category {
   sortOrder Int       @default(0)
   active    Boolean   @default(true)
   products  Product[]
+  coupons   Coupon[]
 }
 
 model Product {
@@ -71,12 +72,40 @@ model Product {
   active       Boolean     @default(true)
   promoActive  Boolean     @default(false)
   promoPercent Int?
+  // Desconto adicional quando o pagamento é via PIX (aplicado sobre o preço já promocional)
+  pixPromoActive  Boolean  @default(false)
+  pixPromoPercent Int?
   // Customização: null = sem limite (à vontade)
   maxExtras    Int?
   maxRemovable Int?
   extras       ProductExtra[]
   removables   ProductRemovable[]
   items        OrderItem[]
+  coupons      Coupon[]    @relation("CouponProducts")
+
+  @@index([categoryId])
+}
+
+// ===== Cupons de desconto (código digitado no checkout) =====
+// type:      "PERCENT" (value = %) | "FIXED" (value = R$)
+// appliesTo: "ALL" | "PRODUCTS" (lista products) | "CATEGORY" (categoryId)
+model Coupon {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  description String?
+  type        String
+  value       Decimal
+  active      Boolean   @default(true)
+  expiresAt   DateTime?
+  minSubtotal Decimal?
+  maxUses     Int?
+  usedCount   Int       @default(0)
+  appliesTo   String    @default("ALL")
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  products    Product[] @relation("CouponProducts")
+  orders      Order[]
+  createdAt   DateTime  @default(now())
 
   @@index([categoryId])
 }
@@ -119,7 +148,11 @@ model Order {
   paymentMethod String
   subtotal      Decimal
   deliveryFee   Decimal              @default(0)
+  discount      Decimal              @default(0)
   total         Decimal
+  couponId      String?
+  coupon        Coupon?              @relation(fields: [couponId], references: [id])
+  couponCode    String?
   notes         String?
   courierId     String?
   courier       Courier?             @relation(fields: [courierId], references: [id])

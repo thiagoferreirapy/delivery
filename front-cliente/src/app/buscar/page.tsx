@@ -5,7 +5,7 @@ import { X } from "lucide-react";
 import { useProducts } from "@/lib/queries";
 import { EmptyState } from "@/components/ui";
 import { Skeleton } from "@/components/Skeleton";
-import { IconSearch, IconChevronLeft, IconCart } from "@/components/icons";
+import { IconSearch, IconSearchX, IconChevronLeft, IconCart } from "@/components/icons";
 import { useCartStore } from "@/lib/cart-store";
 import { brl } from "@/lib/format";
 
@@ -64,7 +64,7 @@ export default function SearchPage() {
 
       {/* Sugestões / resultados */}
       {term === "" ? (
-        <EmptyState emoji="🔎" title="O que você quer comer?" subtitle="Busque por pratos, lanches, bebidas…" />
+        <EmptyState icon={<IconSearch width={30} height={30} />} title="O que você quer comer?" subtitle="Busque por pratos, lanches, bebidas…" />
       ) : isLoading ? (
         <div className="flex flex-col">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -75,7 +75,7 @@ export default function SearchPage() {
           ))}
         </div>
       ) : products.length === 0 ? (
-        <EmptyState emoji="😕" title="Nada encontrado" subtitle={`Nenhum item para "${term}".`} />
+        <EmptyState icon={<IconSearchX width={30} height={30} />} title="Nada encontrado" subtitle={`Nenhum item para "${term}".`} />
       ) : (
         <ul className="flex flex-col divide-y divide-black/5">
           {products.map((p) => (

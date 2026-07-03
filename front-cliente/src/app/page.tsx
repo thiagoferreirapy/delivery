@@ -7,6 +7,7 @@ import { ProfileDrawer } from "@/components/ProfileDrawer";
 import { ProductCard } from "@/components/ProductCard";
 import { TabShell } from "@/components/TabShell";
 import { EmptyState } from "@/components/ui";
+import { IconSearchX } from "@/components/icons";
 import { ProductGridSkeleton } from "@/components/Skeleton";
 import { useCategories, useProducts, useAddresses } from "@/lib/queries";
 import { useAuthStore } from "@/lib/auth-store";
@@ -84,7 +85,7 @@ export default function HomePage() {
         {isLoading ? (
           <ProductGridSkeleton count={8} />
         ) : products.length === 0 ? (
-          <EmptyState emoji="🔎" title="Nada encontrado" subtitle="Tente outra busca ou categoria." />
+          <EmptyState icon={<IconSearchX width={30} height={30} />} title="Nada encontrado" subtitle="Tente outra busca ou categoria." />
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-5">
             {products.map((p) => (

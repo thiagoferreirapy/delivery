@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { CategoryDTO } from "@cabana/shared";
-import { IconBell, IconCamera, IconMapPin, IconSearch } from "./icons";
+import { IconBell, IconMapPin, IconSearch } from "./icons";
 
 interface Props {
   userInitial: string;
@@ -101,9 +101,6 @@ export function StickyHeader({
               placeholder="Buscar na Cabana…"
               className="w-full bg-transparent text-sm outline-none placeholder:text-muted/70"
             />
-            <button type="button" aria-label="Escanear" className="text-muted">
-              <IconCamera width={18} height={18} />
-            </button>
           </label>
           <button
             type="button"

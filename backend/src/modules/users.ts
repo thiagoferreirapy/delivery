@@ -1,19 +1,14 @@
 import { Router } from "express";
-import { z } from "zod";
-import { addressSchema } from "@cabana/shared";
+import { addressSchema, updateProfileSchema, changePasswordSchema } from "@cabana/shared";
 import { prisma } from "../lib/prisma.js";
 import { parse } from "../lib/validate.js";
-import { asyncHandler, notFound } from "../lib/errors.js";
+import { asyncHandler, notFound, badRequest, unauthorized } from "../lib/errors.js";
 import { authenticate } from "../middlewares/auth.js";
 import { serializeAddress } from "../lib/serialize.js";
+import { hashPassword, verifyPassword } from "../lib/password.js";
 
 export const usersRouter = Router();
 usersRouter.use(authenticate("CUSTOMER"));
-
-const updateMeSchema = z.object({
-  name: z.string().min(2).optional(),
-  phone: z.string().min(8).optional().nullable(),
-});
 
 // GET /me
 usersRouter.get(
@@ -38,9 +33,30 @@ usersRouter.get(
 usersRouter.patch(
   "/",
   asyncHandler(async (req, res) => {
-    const data = parse(updateMeSchema, req.body);
+    const data = parse(updateProfileSchema, req.body);
     const u = await prisma.user.update({ where: { id: req.auth!.sub }, data });
     res.json({ id: u.id, name: u.name, email: u.email, phone: u.phone });
+  })
+);
+
+// PATCH /me/password — troca de senha (valida a senha atual)
+usersRouter.patch(
+  "/password",
+  asyncHandler(async (req, res) => {
+    const { currentPassword, newPassword } = parse(changePasswordSchema, req.body);
+    const u = await prisma.user.findUnique({ where: { id: req.auth!.sub } });
+    if (!u) throw notFound("Usuário não encontrado");
+    if (!(await verifyPassword(currentPassword, u.password))) {
+      throw unauthorized("Senha atual incorreta");
+    }
+    if (await verifyPassword(newPassword, u.password)) {
+      throw badRequest("A nova senha deve ser diferente da atual");
+    }
+    await prisma.user.update({
+      where: { id: u.id },
+      data: { password: await hashPassword(newPassword) },
+    });
+    res.json({ ok: true });
   })
 );
 

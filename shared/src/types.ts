@@ -56,6 +56,10 @@ export interface ProductDTO {
   promoActive: boolean;
   promoPercent: number | null;
   finalPrice: number; // preço já com promoção aplicada
+  // Desconto adicional no PIX
+  pixPromoActive: boolean;
+  pixPromoPercent: number | null;
+  pixFinalPrice: number; // finalPrice já com o desconto PIX aplicado (== finalPrice se não houver)
   // Customização
   maxExtras: number | null; // null = à vontade
   maxRemovable: number | null; // null = à vontade
@@ -68,6 +72,36 @@ export interface OrderItemExtra {
   name: string;
   price: number;
   quantity: number;
+}
+
+// ===== Cupons =====
+export interface CouponDTO {
+  id: string;
+  code: string;
+  description: string | null;
+  type: "PERCENT" | "FIXED";
+  value: number;
+  active: boolean;
+  expiresAt: string | null;
+  minSubtotal: number | null;
+  maxUses: number | null;
+  usedCount: number;
+  appliesTo: "ALL" | "PRODUCTS" | "CATEGORY";
+  categoryId: string | null;
+  productIds: string[];
+  createdAt: string;
+}
+
+// Resultado do cálculo de preços (prévia do checkout e retorno do pedido)
+export interface QuoteDTO {
+  paymentMethod: PaymentMethod;
+  subtotal: number;
+  pixSavings: number; // quanto o PIX economizou nos itens (0 se não-PIX)
+  discount: number; // desconto do cupom
+  deliveryFee: number;
+  total: number;
+  coupon: { code: string; description: string | null } | null;
+  couponError: string | null; // mensagem quando o cupom informado é inválido
 }
 
 export interface AddressDTO {
@@ -124,7 +158,9 @@ export interface OrderDTO {
   paymentStatus: PaymentStatus | null;
   subtotal: number;
   deliveryFee: number;
+  discount: number; // desconto do cupom aplicado
   total: number;
+  couponCode: string | null;
   notes: string | null;
   items: OrderItemDTO[];
   address: AddressDTO;

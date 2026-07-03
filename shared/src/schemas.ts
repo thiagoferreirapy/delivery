@@ -9,6 +9,19 @@ export const registerSchema = z.object({
 });
 export type RegisterInput = z.infer<typeof registerSchema>;
 
+// Atualização do próprio perfil (cliente) — email não é editável aqui.
+export const updateProfileSchema = z.object({
+  name: z.string().min(2, "Nome muito curto").optional(),
+  phone: z.string().min(8, "Telefone muito curto").optional().nullable(),
+});
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Informe a senha atual"),
+  newPassword: z.string().min(6, "Mínimo 6 caracteres"),
+});
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+
 export const loginSchema = z.object({
   email: z.string().min(3), // couriers logam por telefone; aceita string genérica
   password: z.string().min(1),
@@ -53,6 +66,9 @@ export const productSchema = z.object({
   active: z.boolean().optional(),
   promoActive: z.boolean().optional(),
   promoPercent: z.number().int().min(1).max(99).optional().nullable(),
+  // Desconto extra no PIX (aplicado sobre o preço já promocional)
+  pixPromoActive: z.boolean().optional(),
+  pixPromoPercent: z.number().int().min(1).max(99).optional().nullable(),
   // Customização (null/undefined = à vontade)
   maxExtras: z.number().int().min(0).optional().nullable(),
   maxRemovable: z.number().int().min(0).optional().nullable(),
@@ -80,10 +96,46 @@ export const createOrderSchema = z.object({
   paymentMethod: z.enum(["PIX", "CREDIT_CARD", "DEBIT_CARD", "CASH"]),
   items: z.array(orderItemInputSchema).min(1, "Carrinho vazio"),
   notes: z.string().optional().nullable(),
+  // cupom de desconto (código digitado no checkout)
+  couponCode: z.string().trim().max(24).optional().nullable(),
   // usado por ATTENDANT/ADMIN no cadastro manual (pedido em nome de cliente)
   userId: z.string().optional(),
 });
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
+
+// Prévia de preços (checkout) — mesmo cálculo do pedido, sem gravar nada.
+export const quoteSchema = z.object({
+  paymentMethod: z.enum(["PIX", "CREDIT_CARD", "DEBIT_CARD", "CASH"]),
+  items: z.array(orderItemInputSchema).min(1, "Carrinho vazio"),
+  couponCode: z.string().trim().max(24).optional().nullable(),
+});
+export type QuoteInput = z.infer<typeof quoteSchema>;
+
+// ===== Cupons =====
+const couponBaseSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .min(3, "Mínimo 3 caracteres")
+    .max(24)
+    .regex(/^[A-Za-z0-9]+$/, "Use apenas letras e números"),
+  description: z.string().optional().nullable(),
+  type: z.enum(["PERCENT", "FIXED"]),
+  value: z.number().positive("Valor deve ser maior que zero"),
+  active: z.boolean().optional(),
+  expiresAt: z.string().datetime().optional().nullable(), // ISO
+  minSubtotal: z.number().nonnegative().optional().nullable(),
+  maxUses: z.number().int().positive().optional().nullable(),
+  appliesTo: z.enum(["ALL", "PRODUCTS", "CATEGORY"]).optional(),
+  categoryId: z.string().optional().nullable(),
+  productIds: z.array(z.string()).optional(),
+});
+export const couponSchema = couponBaseSchema.refine(
+  (d) => d.type !== "PERCENT" || d.value <= 90,
+  { message: "Percentual máximo é 90%", path: ["value"] }
+);
+export const couponUpdateSchema = couponBaseSchema.partial();
+export type CouponInput = z.infer<typeof couponBaseSchema>;
 
 export const updateStatusSchema = z.object({
   status: z.enum([

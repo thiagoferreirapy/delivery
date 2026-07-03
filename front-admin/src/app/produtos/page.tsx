@@ -17,6 +17,7 @@ type RemovableRow = { name: string };
 const emptyForm = {
   name: "", categoryId: "", description: "", ingredients: "", prepNotes: "",
   price: 0, imageUrl: "", active: true, promoActive: false, promoPercent: 0,
+  pixPromoActive: false, pixPromoPercent: 0,
   maxExtras: "", maxRemovable: "",
   extras: [] as ExtraRow[], removables: [] as RemovableRow[],
 };
@@ -37,6 +38,7 @@ export default function ProductsPage() {
       name: p.name, categoryId: p.categoryId, description: p.description ?? "", ingredients: p.ingredients ?? "",
       prepNotes: p.prepNotes ?? "", price: p.price, imageUrl: p.imageUrl ?? "", active: p.active,
       promoActive: p.promoActive, promoPercent: p.promoPercent ?? 0,
+      pixPromoActive: p.pixPromoActive, pixPromoPercent: p.pixPromoPercent ?? 0,
       maxExtras: p.maxExtras != null ? String(p.maxExtras) : "",
       maxRemovable: p.maxRemovable != null ? String(p.maxRemovable) : "",
       extras: (p.extras ?? []).map((e) => ({ name: e.name, price: e.price })),
@@ -50,6 +52,7 @@ export default function ProductsPage() {
       ingredients: form.ingredients || undefined, prepNotes: form.prepNotes || undefined,
       price: Number(form.price), imageUrl: form.imageUrl || undefined, active: form.active,
       promoActive: form.promoActive, promoPercent: form.promoActive ? Number(form.promoPercent) || null : null,
+      pixPromoActive: form.pixPromoActive, pixPromoPercent: form.pixPromoActive ? Number(form.pixPromoPercent) || null : null,
       maxExtras: form.maxExtras === "" ? null : Number(form.maxExtras),
       maxRemovable: form.maxRemovable === "" ? null : Number(form.maxRemovable),
       extras: form.extras.filter((e) => e.name.trim()).map((e) => ({ name: e.name.trim(), price: Number(e.price) || 0 })),
@@ -79,6 +82,9 @@ export default function ProductsPage() {
               {p.promoActive && p.promoPercent ? (
                 <span className="rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold text-cream">{p.promoPercent}%</span>
               ) : null}
+              {p.pixPromoActive && p.pixPromoPercent ? (
+                <span className="rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-bold text-success">PIX {p.pixPromoPercent}%</span>
+              ) : null}
               <span className="w-20 text-right text-sm font-semibold text-ink">{brl(p.finalPrice)}</span>
               <button onClick={() => open(p)} className="grid h-8 w-8 place-items-center rounded-lg text-brand hover:bg-black/5"><Icon.edit width={18} height={18} /></button>
               <button onClick={() => confirm(`Excluir/desativar "${p.name}"?`) && remove.mutate(p.id)} className="grid h-8 w-8 place-items-center rounded-lg text-danger hover:bg-danger/5"><Icon.x width={18} height={18} /></button>
@@ -104,6 +110,10 @@ export default function ProductsPage() {
           <div className="flex items-center gap-2 pt-6"><Toggle checked={form.promoActive} onChange={(v) => setForm({ ...form, promoActive: v })} label="Promoção" /></div>
           {form.promoActive && (
             <Field label="Desconto (%)"><input type="number" min={1} max={99} className="input w-28" value={form.promoPercent} onChange={(e) => setForm({ ...form, promoPercent: Number(e.target.value) })} /></Field>
+          )}
+          <div className="flex items-center gap-2 pt-6"><Toggle checked={form.pixPromoActive} onChange={(v) => setForm({ ...form, pixPromoActive: v })} label="Promoção no PIX" /></div>
+          {form.pixPromoActive && (
+            <Field label="Desconto PIX (%)"><input type="number" min={1} max={99} className="input w-28" value={form.pixPromoPercent} onChange={(e) => setForm({ ...form, pixPromoPercent: Number(e.target.value) })} /></Field>
           )}
 
           {/* Ingredientes extras (adicionais, com preço) */}

@@ -2,18 +2,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import { X } from "lucide-react";
+import { useParams } from "next/navigation";
+import { X, Loader2 } from "lucide-react";
 import { useProduct } from "@/lib/queries";
+import { useNav } from "@/lib/use-nav";
 import { useCartStore } from "@/lib/cart-store";
 import { brl } from "@/lib/format";
 import { EmptyState } from "@/components/ui";
 import { ProductDetailSkeleton } from "@/components/Skeleton";
-import { IconMinus, IconPlus, IconChevronLeft, IconCart } from "@/components/icons";
+import { IconMinus, IconPlus, IconChevronLeft, IconCart, IconPackageX } from "@/components/icons";
 
 export default function ProductPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
+  const { navigate, pending } = useNav();
   const { data: product, isLoading } = useProduct(id);
   const add = useCartStore((s) => s.add);
   const cartCount = useCartStore((s) => s.items.reduce((n, i) => n + i.quantity, 0));
@@ -42,7 +43,7 @@ export default function ProductPage() {
   );
 
   if (isLoading) return <ProductDetailSkeleton />;
-  if (!product) return <EmptyState emoji="😕" title="Produto não encontrado" />;
+  if (!product) return <EmptyState icon={<IconPackageX width={30} height={30} />} title="Produto não encontrado" />;
 
   const p = product;
   const extrasFull = p.maxExtras != null && totalExtraQty >= p.maxExtras;
@@ -77,8 +78,9 @@ export default function ProductPage() {
   const total = unit * qty;
 
   function addToCart() {
-    add(p, qty, { notes: notes || undefined, extras: selectedExtras, removed: selectedRemoved });
-    router.push("/carrinho");
+    navigate("/carrinho", () =>
+      add(p, qty, { notes: notes || undefined, extras: selectedExtras, removed: selectedRemoved })
+    );
   }
 
   return (
@@ -140,6 +142,12 @@ export default function ProductPage() {
               <span className="text-sm font-semibold text-success">{p.promoPercent}% OFF</span>
             )}
           </div>
+          {p.pixPromoActive && p.pixFinalPrice < p.finalPrice && (
+            <p className="mt-1 text-sm font-semibold text-success tabular-nums">
+              {brl(p.pixFinalPrice)} pagando no PIX
+              {p.pixPromoPercent ? <span className="font-medium"> ({p.pixPromoPercent}% OFF)</span> : null}
+            </p>
+          )}
         </div>
 
         {p.description && <p className="text-sm text-ink/80">{p.description}</p>}
@@ -248,8 +256,11 @@ export default function ProductPage() {
               <IconPlus width={18} height={18} />
             </button>
           </div>
-          <button onClick={addToCart} className="btn-primary flex-1 justify-between">
-            <span>Adicionar</span>
+          <button onClick={addToCart} disabled={pending} className="btn-primary flex-1 justify-between">
+            <span className="flex items-center gap-2">
+              {pending && <Loader2 className="animate-spin" width={18} height={18} />}
+              Adicionar
+            </span>
             <span className="tabular-nums">{brl(total)}</span>
           </button>
         </div>

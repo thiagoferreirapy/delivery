@@ -1,7 +1,9 @@
 import {
   type LucideProps,
   Search,
+  SearchX,
   Bell,
+  BellOff,
   User,
   Home,
   ShoppingCart,
@@ -16,13 +18,20 @@ import {
   Star,
   Clock,
   Copy,
+  PackageX,
+  FileX,
+  Pencil,
+  KeyRound,
+  Phone,
 } from "lucide-react";
 
 // Wrappers finos sobre lucide-react. As props do call-site sobrescrevem os
 // defaults (width, height, className, strokeWidth, fill, etc.), então todos
 // os usos existentes continuam funcionando sem edição.
 export const IconSearch = (p: LucideProps) => <Search strokeWidth={2} {...p} />;
+export const IconSearchX = (p: LucideProps) => <SearchX strokeWidth={2} {...p} />;
 export const IconBell = (p: LucideProps) => <Bell strokeWidth={2} {...p} />;
+export const IconBellOff = (p: LucideProps) => <BellOff strokeWidth={2} {...p} />;
 export const IconUser = (p: LucideProps) => <User strokeWidth={2} {...p} />;
 export const IconHome = (p: LucideProps) => <Home strokeWidth={2} {...p} />;
 export const IconCart = (p: LucideProps) => <ShoppingCart strokeWidth={2} {...p} />;
@@ -37,3 +46,8 @@ export const IconTruck = (p: LucideProps) => <Truck strokeWidth={2} {...p} />;
 export const IconStar = (p: LucideProps) => <Star strokeWidth={2} {...p} />;
 export const IconClock = (p: LucideProps) => <Clock strokeWidth={2} {...p} />;
 export const IconCopy = (p: LucideProps) => <Copy strokeWidth={2} {...p} />;
+export const IconPackageX = (p: LucideProps) => <PackageX strokeWidth={2} {...p} />;
+export const IconFileX = (p: LucideProps) => <FileX strokeWidth={2} {...p} />;
+export const IconPencil = (p: LucideProps) => <Pencil strokeWidth={2} {...p} />;
+export const IconKey = (p: LucideProps) => <KeyRound strokeWidth={2} {...p} />;
+export const IconPhone = (p: LucideProps) => <Phone strokeWidth={2} {...p} />;

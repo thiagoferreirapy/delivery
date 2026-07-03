@@ -16,6 +16,7 @@ import {
   Star,
   Bell,
   Pencil,
+  Ticket,
   type LucideProps,
 } from "lucide-react";
 
@@ -38,4 +39,5 @@ export const Icon = {
   star: (p: LucideProps) => <Star size={20} strokeWidth={2} {...p} />,
   bell: (p: LucideProps) => <Bell size={20} strokeWidth={2} {...p} />,
   edit: (p: LucideProps) => <Pencil size={20} strokeWidth={2} {...p} />,
+  ticket: (p: LucideProps) => <Ticket size={20} strokeWidth={2} {...p} />,
 };

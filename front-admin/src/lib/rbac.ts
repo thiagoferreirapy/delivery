@@ -15,6 +15,7 @@ export const NAV: NavItem[] = [
   { href: "/pedidos/novo", label: "Novo pedido", icon: "plus", roles: ["ADMIN", "ATTENDANT"] },
   { href: "/categorias", label: "Categorias", icon: "tag", roles: ["ADMIN"] },
   { href: "/produtos", label: "Produtos", icon: "box", roles: ["ADMIN"] },
+  { href: "/cupons", label: "Cupons", icon: "ticket", roles: ["ADMIN"] },
   { href: "/funcionarios", label: "Funcionários", icon: "users", roles: ["ADMIN"] },
   { href: "/entregadores", label: "Entregadores", icon: "truck", roles: ["ADMIN"] },
 ];

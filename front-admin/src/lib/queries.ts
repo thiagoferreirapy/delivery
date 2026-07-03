@@ -11,6 +11,8 @@ import type {
   ProductInput,
   EmployeeInput,
   CourierInput,
+  CouponDTO,
+  CouponInput,
 } from "@cabana/shared";
 import { api } from "./api";
 import { useAuthStore } from "./auth-store";
@@ -120,6 +122,20 @@ export function useProductMutations() {
     create: useMutation({ mutationFn: (input: ProductInput) => api("/products", { method: "POST", body: input }), onSuccess: inv }),
     update: useMutation({ mutationFn: ({ id, input }: { id: string; input: Partial<ProductInput> }) => api(`/products/${id}`, { method: "PATCH", body: input }), onSuccess: inv }),
     remove: useMutation({ mutationFn: (id: string) => api(`/products/${id}`, { method: "DELETE" }), onSuccess: inv }),
+  };
+}
+
+// ===== Cupons =====
+export function useCoupons() {
+  return useQuery({ queryKey: ["coupons"], queryFn: () => api<CouponDTO[]>("/coupons") });
+}
+export function useCouponMutations() {
+  const qc = useQueryClient();
+  const inv = () => qc.invalidateQueries({ queryKey: ["coupons"] });
+  return {
+    create: useMutation({ mutationFn: (input: CouponInput) => api("/coupons", { method: "POST", body: input }), onSuccess: inv }),
+    update: useMutation({ mutationFn: ({ id, input }: { id: string; input: Partial<CouponInput> }) => api(`/coupons/${id}`, { method: "PATCH", body: input }), onSuccess: inv }),
+    remove: useMutation({ mutationFn: (id: string) => api(`/coupons/${id}`, { method: "DELETE" }), onSuccess: inv }),
   };
 }
 
