@@ -2,7 +2,7 @@ import { Router } from "express";
 import { categorySchema, productSchema } from "@cabana/shared";
 import { prisma } from "../lib/prisma.js";
 import { parse } from "../lib/validate.js";
-import { asyncHandler, notFound } from "../lib/errors.js";
+import { asyncHandler, notFound, badRequest } from "../lib/errors.js";
 import { authenticate } from "../middlewares/auth.js";
 import { rbac } from "../middlewares/rbac.js";
 import { serializeCategory, serializeProduct } from "../lib/serialize.js";
@@ -64,16 +64,43 @@ categoriesRouter.delete(
 // ===================== Produtos =====================
 export const productsRouter = Router();
 
-// include padrão de produto (categoria + extras + ingredientes removíveis)
+// include padrão de produto (categoria + extras + removíveis + grupos de opções)
 const productInclude = {
   category: true,
   extras: { orderBy: { sortOrder: "asc" as const } },
   removables: { orderBy: { sortOrder: "asc" as const } },
+  optionGroups: {
+    orderBy: { sortOrder: "asc" as const },
+    include: { options: { orderBy: { sortOrder: "asc" as const } } },
+  },
 };
 
-// separa os campos aninhados (extras/removables) dos campos simples do produto
+// Monta o create aninhado de um grupo (usado no POST e no PATCH)
+const nestedGroupCreate = (groups: any[]) =>
+  groups.map((g: any, i: number) => ({
+    name: g.name,
+    type: g.type,
+    kind: g.kind,
+    minSelect: g.minSelect,
+    maxSelect: g.maxSelect ?? null,
+    pricingRule: g.pricingRule,
+    allowQuantity: g.allowQuantity,
+    active: g.active ?? true,
+    sortOrder: i,
+    options: {
+      create: (g.options ?? []).map((o: any, j: number) => ({
+        name: o.name,
+        priceDelta: o.priceDelta ?? 0,
+        linkedProductId: o.linkedProductId ?? null,
+        active: o.active ?? true,
+        sortOrder: j,
+      })),
+    },
+  }));
+
+// separa os campos aninhados (extras/removables/optionGroups) dos campos simples
 function splitProductData(data: any) {
-  const { extras, removables, ...rest } = data;
+  const { extras, removables, optionGroups, ...rest } = data;
   const nested: any = {};
   if (extras !== undefined) {
     nested.extras = {
@@ -87,7 +114,31 @@ function splitProductData(data: any) {
       create: (removables ?? []).map((r: any, i: number) => ({ name: r.name, sortOrder: i })),
     };
   }
+  if (optionGroups !== undefined) {
+    // deleteMany cascateia para OptionItem (FK onDelete: Cascade)
+    nested.optionGroups = { deleteMany: {}, create: nestedGroupCreate(optionGroups ?? []) };
+  }
   return { rest, nested };
+}
+
+// Uma opção não pode apontar para um produto inexistente/inativo, nem para o
+// próprio produto (combo que contém a si mesmo).
+async function assertLinkedProducts(groups: any[] | undefined, selfId?: string) {
+  if (!groups?.length) return;
+  const ids = [
+    ...new Set(
+      groups.flatMap((g: any) => (g.options ?? []).map((o: any) => o.linkedProductId).filter(Boolean))
+    ),
+  ] as string[];
+  if (!ids.length) return;
+  if (selfId && ids.includes(selfId)) throw badRequest("Um produto não pode ser opção de si mesmo");
+  const found = await prisma.product.findMany({
+    where: { id: { in: ids }, active: true },
+    select: { id: true },
+  });
+  if (found.length !== ids.length) {
+    throw badRequest("Alguma opção aponta para um produto inexistente ou inativo");
+  }
 }
 
 // GET /products  (?categoryId=&search=&all=1)
@@ -126,7 +177,8 @@ productsRouter.post(
   ...adminOnly,
   asyncHandler(async (req, res) => {
     const data = parse(productSchema, req.body);
-    const { extras, removables, ...rest } = data;
+    const { extras, removables, optionGroups, ...rest } = data;
+    await assertLinkedProducts(optionGroups);
     const p = await prisma.product.create({
       data: {
         ...rest,
@@ -136,6 +188,7 @@ productsRouter.post(
         removables: removables?.length
           ? { create: removables.map((r, i) => ({ name: r.name, sortOrder: i })) }
           : undefined,
+        optionGroups: optionGroups?.length ? { create: nestedGroupCreate(optionGroups) } : undefined,
       },
       include: productInclude,
     });
@@ -148,6 +201,7 @@ productsRouter.patch(
   ...adminOnly,
   asyncHandler(async (req, res) => {
     const data = parse(productSchema.partial(), req.body);
+    await assertLinkedProducts(data.optionGroups, req.params.id);
     const { rest, nested } = splitProductData(data);
     const p = await prisma.product.update({
       where: { id: req.params.id },

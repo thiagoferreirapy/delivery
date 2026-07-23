@@ -92,7 +92,7 @@ authRouter.post(
       if (!c || !(await verifyPassword(password, c.password))) throw unauthorized("Credenciais inválidas");
       if (!c.active) throw unauthorized("Cadastro de entregador desativado.");
       payload = { sub: c.id, scope: "COURIER", name: c.name };
-      user = { id: c.id, name: c.name, phone: c.phone, scope: "COURIER" };
+      user = { id: c.id, name: c.name, phone: c.phone, scope: "COURIER", photoUrl: c.photoUrl };
     }
 
     const accessToken = setAuthCookies(res, payload);

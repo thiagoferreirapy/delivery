@@ -1,20 +1,64 @@
 import { Router } from "express";
 import {
   courierActionSchema,
+  courierProfileSchema,
+  changePasswordSchema,
   locationSchema,
   SOCKET_EVENTS,
   rooms,
 } from "@cabana/shared";
 import { prisma } from "../lib/prisma.js";
 import { parse } from "../lib/validate.js";
-import { asyncHandler, badRequest, forbidden, notFound } from "../lib/errors.js";
+import { asyncHandler, badRequest, forbidden, notFound, unauthorized } from "../lib/errors.js";
 import { authenticate } from "../middlewares/auth.js";
-import { serializeOrder, orderInclude } from "../lib/serialize.js";
+import { hashPassword, verifyPassword } from "../lib/password.js";
+import { serializeOrder, serializeCourierFull, orderInclude } from "../lib/serialize.js";
 import { transitionOrder } from "../services/order-service.js";
 import { emit } from "../realtime/io.js";
 
 export const courierRouter = Router();
 courierRouter.use(authenticate("COURIER"));
+
+// GET /courier/profile — o entregador vê o próprio cadastro completo
+courierRouter.get(
+  "/profile",
+  asyncHandler(async (req, res) => {
+    const c = await prisma.courier.findUnique({ where: { id: req.auth!.sub } });
+    if (!c) throw notFound("Entregador não encontrado");
+    res.json(serializeCourierFull(c));
+  })
+);
+
+// PATCH /courier/profile — o entregador altera SÓ nome e foto
+courierRouter.patch(
+  "/profile",
+  asyncHandler(async (req, res) => {
+    const data = parse(courierProfileSchema, req.body);
+    const patch: any = {};
+    if (data.name !== undefined) patch.name = data.name;
+    if (data.photoUrl !== undefined) patch.photoUrl = data.photoUrl;
+    const c = await prisma.courier.update({ where: { id: req.auth!.sub }, data: patch });
+    res.json(serializeCourierFull(c));
+  })
+);
+
+// PATCH /courier/password — troca de senha (valida a senha atual)
+courierRouter.patch(
+  "/password",
+  asyncHandler(async (req, res) => {
+    const { currentPassword, newPassword } = parse(changePasswordSchema, req.body);
+    const c = await prisma.courier.findUnique({ where: { id: req.auth!.sub } });
+    if (!c) throw notFound("Entregador não encontrado");
+    if (!(await verifyPassword(currentPassword, c.password))) {
+      throw unauthorized("Senha atual incorreta");
+    }
+    if (await verifyPassword(newPassword, c.password)) {
+      throw badRequest("A nova senha deve ser diferente da atual");
+    }
+    await prisma.courier.update({ where: { id: c.id }, data: { password: await hashPassword(newPassword) } });
+    res.json({ ok: true });
+  })
+);
 
 // GET /courier/deliveries — atribuídas ao entregador logado
 // (?history=1 inclui entregas concluídas)

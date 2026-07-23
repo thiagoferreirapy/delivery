@@ -11,7 +11,7 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "Cabana Lanches — Entregador",
+  title: "Cabana Lanches - Entregador",
   description: "App do entregador Cabana Lanches",
 };
 

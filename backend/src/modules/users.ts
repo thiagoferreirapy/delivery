@@ -6,6 +6,7 @@ import { asyncHandler, notFound, badRequest, unauthorized } from "../lib/errors.
 import { authenticate } from "../middlewares/auth.js";
 import { serializeAddress } from "../lib/serialize.js";
 import { hashPassword, verifyPassword } from "../lib/password.js";
+import { geocodeAddress, reverseGeocode } from "../integrations/maps.js";
 
 export const usersRouter = Router();
 usersRouter.use(authenticate("CUSTOMER"));
@@ -60,6 +61,34 @@ usersRouter.patch(
   })
 );
 
+// GET /me/geocode — converte campos de endereço em lat/lng (Nominatim, via backend)
+usersRouter.get(
+  "/geocode",
+  asyncHandler(async (req, res) => {
+    const q = req.query as Record<string, string | undefined>;
+    const geo = await geocodeAddress({
+      street: q.street,
+      number: q.number,
+      neighborhood: q.neighborhood,
+      city: q.city,
+      state: q.state,
+    });
+    res.json(geo); // { lat, lng } ou null
+  })
+);
+
+// GET /me/reverse-geocode?lat=&lng= — coordenadas -> campos do endereço
+usersRouter.get(
+  "/reverse-geocode",
+  asyncHandler(async (req, res) => {
+    const lat = parseFloat(String(req.query.lat));
+    const lng = parseFloat(String(req.query.lng));
+    if (Number.isNaN(lat) || Number.isNaN(lng)) return res.json(null);
+    const parts = await reverseGeocode({ lat, lng });
+    res.json(parts);
+  })
+);
+
 // GET /me/addresses
 usersRouter.get(
   "/addresses",
@@ -82,8 +111,17 @@ usersRouter.post(
       await prisma.address.updateMany({ where: { userId }, data: { isDefault: false } });
     }
     const count = await prisma.address.count({ where: { userId } });
+    // Geocodifica se o cliente não marcou o pino manualmente
+    let { lat, lng } = data;
+    if (lat == null || lng == null) {
+      const geo = await geocodeAddress(data);
+      if (geo) {
+        lat = geo.lat;
+        lng = geo.lng;
+      }
+    }
     const a = await prisma.address.create({
-      data: { ...data, userId, isDefault: data.isDefault ?? count === 0 },
+      data: { ...data, lat: lat ?? null, lng: lng ?? null, userId, isDefault: data.isDefault ?? count === 0 },
     });
     res.status(201).json(serializeAddress(a));
   })
@@ -100,7 +138,17 @@ usersRouter.patch(
     if (data.isDefault) {
       await prisma.address.updateMany({ where: { userId }, data: { isDefault: false } });
     }
-    const a = await prisma.address.update({ where: { id: existing.id }, data });
+    // Se não veio pino manual, re-geocodifica a partir do endereço final (mesclado)
+    const patch: typeof data = { ...data };
+    if (data.lat == null || data.lng == null) {
+      const merged = { ...existing, ...data };
+      const geo = await geocodeAddress(merged);
+      if (geo) {
+        patch.lat = geo.lat;
+        patch.lng = geo.lng;
+      }
+    }
+    const a = await prisma.address.update({ where: { id: existing.id }, data: patch });
     res.json(serializeAddress(a));
   })
 );

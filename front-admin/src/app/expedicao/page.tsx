@@ -2,8 +2,9 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { SOCKET_EVENTS, type OrderDTO } from "@cabana/shared";
+import { SOCKET_EVENTS, type OrderDTO, type OrderStatusEvent } from "@cabana/shared";
 import { AdminShell } from "@/components/AdminShell";
 import { PageTitle, EmptyState } from "@/components/ui";
 import { DispatchSkeleton } from "@/components/Skeleton";
@@ -25,10 +26,30 @@ export default function DispatchPage() {
     if (!ready) return;
     const socket = getSocket();
     const refresh = () => qc.invalidateQueries({ queryKey: ["dispatch"] });
-    socket.on(SOCKET_EVENTS.DISPATCH_UPDATE, refresh);
+    // Só avisa quando um pedido fica PRONTO (novo item pra encaminhar); o mesmo
+    // evento também dispara ao ser DESPACHADO, aí não precisa toast.
+    const onUpdate = (e: OrderStatusEvent) => {
+      refresh();
+      if (e?.status !== "READY") return;
+      toast.success(`Pedido pronto pra encaminhar${e?.code ? ` - ${e.code}` : ""}`, {
+        description: "Chegou um novo pedido na expedição.",
+      });
+      try {
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g);
+        g.connect(ctx.destination);
+        o.frequency.value = 760;
+        g.gain.value = 0.08;
+        o.start();
+        o.stop(ctx.currentTime + 0.18);
+      } catch {}
+    };
+    socket.on(SOCKET_EVENTS.DISPATCH_UPDATE, onUpdate);
     socket.on(SOCKET_EVENTS.ORDER_STATUS, refresh);
     return () => {
-      socket.off(SOCKET_EVENTS.DISPATCH_UPDATE, refresh);
+      socket.off(SOCKET_EVENTS.DISPATCH_UPDATE, onUpdate);
       socket.off(SOCKET_EVENTS.ORDER_STATUS, refresh);
     };
   }, [ready, qc]);
@@ -41,7 +62,7 @@ export default function DispatchPage() {
       {isLoading ? (
         <DispatchSkeleton />
       ) : orders.length === 0 ? (
-        <EmptyState emoji="📦" title="Nenhum pedido pronto" subtitle="Pedidos finalizados na cozinha aparecem aqui." />
+        <EmptyState icon={<Icon.box width={30} height={30} />} title="Nenhum pedido pronto" subtitle="Pedidos finalizados na cozinha aparecem aqui." />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {orders.map((o) => (
@@ -93,7 +114,7 @@ function DispatchCard({
         <span className="text-xs text-muted">{timeAgo(order.createdAt)}</span>
       </div>
       <p className="mb-1 text-sm text-muted">
-        {order.address.street}, {order.address.number} — {order.address.neighborhood}
+        {order.address.street}, {order.address.number} - {order.address.neighborhood}
       </p>
       <p className="mb-3 text-xs text-muted">{order.items.reduce((n, i) => n + i.quantity, 0)} itens · {order.customer.name}</p>
 

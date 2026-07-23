@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AddressDTO, AddressInput } from "@cabana/shared";
 import {
@@ -14,6 +14,8 @@ import { useAuthStore } from "@/lib/auth-store";
 import { disconnectSocket } from "@/lib/socket";
 import { TabShell } from "@/components/TabShell";
 import { PageHeader, Spinner } from "@/components/ui";
+import { LocationPicker } from "@/components/LocationPicker";
+import { geocode, reverseGeocode } from "@/lib/geocode";
 import { Loader2 } from "lucide-react";
 import { IconPlus, IconMapPin, IconPencil, IconKey, IconPhone } from "@/components/icons";
 
@@ -34,8 +36,84 @@ export default function ProfilePage() {
   // ----- Endereços -----
   const [editing, setEditing] = useState<string | "new" | null>(null);
   const [form, setForm] = useState<AddressInput>(empty);
+  const [geoBusy, setGeoBusy] = useState(false);
+  const [pinnedManually, setPinnedManually] = useState(false);
   const set = (k: keyof AddressInput) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm({ ...form, [k]: k === "isDefault" ? e.target.checked : e.target.value });
+  const pin = form.lat != null && form.lng != null ? { lat: form.lat, lng: form.lng } : null;
+  const applyCoords = (p: { lat: number; lng: number }) => setForm((f) => ({ ...f, lat: p.lat, lng: p.lng }));
+  // Só usa a posição se ainda não há pino (não sobrescreve o que o usuário marcou)
+  const applyCoordsIfEmpty = (p: { lat: number; lng: number }) =>
+    setForm((f) => (f.lat == null || f.lng == null ? { ...f, lat: p.lat, lng: p.lng } : f));
+  // Arrastar/clicar o pino: fixa a coordenada E preenche os campos pelo local (reverse geocode)
+  async function onPinDrag(p: { lat: number; lng: number }) {
+    console.log("[mapa] pino selecionado:", p);
+    applyCoords(p);
+    setPinnedManually(true);
+    setGeoBusy(true);
+    try {
+      const parts = await reverseGeocode(p);
+      console.log("[mapa] reverse geocode retornou:", parts);
+      if (parts) {
+        const patch: Partial<AddressInput> = {};
+        (["street", "number", "neighborhood", "city", "state", "cep"] as const).forEach((k) => {
+          if (parts[k]) patch[k] = parts[k];
+        });
+        console.log("[mapa] campos que serão preenchidos:", patch);
+        setForm((f) => ({ ...f, ...patch, lat: p.lat, lng: p.lng }));
+      }
+    } finally {
+      setGeoBusy(false);
+    }
+  }
+
+  async function locateOnMap() {
+    setGeoBusy(true);
+    try {
+      const p = await geocode({ street: form.street, number: form.number, neighborhood: form.neighborhood, city: form.city, state: form.state });
+      if (p) applyCoords(p);
+    } finally {
+      setGeoBusy(false);
+    }
+  }
+
+  function useMyLocation() {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    setGeoBusy(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        onPinDrag({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setGeoBusy(false);
+      },
+      () => setGeoBusy(false),
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  }
+
+  // Ao abrir "Novo endereço", pega a localização do dispositivo (GPS) e centra o
+  // mapa/pino ali — a não ser que o usuário já tenha marcado algo.
+  useEffect(() => {
+    if (editing !== "new") return;
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => applyCoordsIfEmpty({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => {},
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing]);
+
+  // Auto-geocodifica conforme o cliente preenche os campos (até ele mover o pino).
+  useEffect(() => {
+    if (!editing || pinnedManually) return;
+    if (!form.street?.trim() || !form.city?.trim()) return;
+    const t = setTimeout(async () => {
+      const p = await geocode({ street: form.street, number: form.number, neighborhood: form.neighborhood, city: form.city, state: form.state });
+      if (p) applyCoords(p);
+    }, 700);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing, pinnedManually, form.street, form.number, form.neighborhood, form.city, form.state]);
 
   // ----- Dados pessoais / senha -----
   const [sheet, setSheet] = useState<null | "profile" | "password">(null);
@@ -45,10 +123,12 @@ export default function ProfilePage() {
 
   function startNew() {
     setForm(empty);
+    setPinnedManually(false);
     setEditing("new");
   }
   function startEdit(a: AddressDTO) {
     setForm({ ...a, complement: a.complement ?? "" });
+    setPinnedManually(a.lat != null && a.lng != null); // preserva o pino já salvo
     setEditing(a.id);
   }
   async function save() {
@@ -163,7 +243,7 @@ export default function ProfilePage() {
                     <p className="font-semibold text-ink">
                       {a.label} {a.isDefault && <span className="ml-1 rounded bg-success/15 px-1.5 py-0.5 text-[10px] font-bold text-success">PADRÃO</span>}
                     </p>
-                    <p className="text-muted">{a.street}, {a.number} — {a.neighborhood}, {a.city}/{a.state}</p>
+                    <p className="text-muted">{a.street}, {a.number} - {a.neighborhood}, {a.city}/{a.state}</p>
                   </div>
                   <div className="flex flex-col gap-1 text-xs">
                     <button onClick={() => startEdit(a)} className="text-brand">Editar</button>
@@ -270,6 +350,41 @@ export default function ProfilePage() {
                 Definir como padrão
               </label>
             </div>
+
+            {/* Localização no mapa (pino ajustável) */}
+            <div className="mt-3">
+              <div className="mb-1.5 flex items-center justify-between gap-2">
+                <span className="text-xs font-medium text-muted">Localização no mapa</span>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={useMyLocation}
+                    disabled={geoBusy}
+                    className="flex items-center gap-1 text-xs font-semibold text-brand disabled:opacity-50"
+                  >
+                    <IconMapPin width={13} height={13} /> Minha localização
+                  </button>
+                  <button
+                    type="button"
+                    onClick={locateOnMap}
+                    disabled={geoBusy}
+                    className="flex items-center gap-1 text-xs font-semibold text-muted disabled:opacity-50"
+                  >
+                    {geoBusy ? <Loader2 className="animate-spin" width={13} height={13} /> : null}
+                    Buscar endereço
+                  </button>
+                </div>
+              </div>
+              <LocationPicker value={pin} onChange={onPinDrag} />
+              <p className="mt-1 text-[11px] text-muted">
+                {pinnedManually
+                  ? "Pino ajustado manualmente. Arraste para mudar."
+                  : pin
+                    ? "Marcado a partir do endereço. Arraste o pino para ajustar."
+                    : "Preencha rua e cidade que marcamos sozinhos, ou clique no mapa."}
+              </p>
+            </div>
+
             <button onClick={save} disabled={create.isPending || update.isPending} className="btn-primary mt-4 w-full">
               {(create.isPending || update.isPending) && <Loader2 className="animate-spin" width={18} height={18} />}
               Salvar

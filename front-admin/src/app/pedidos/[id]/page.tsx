@@ -1,11 +1,14 @@
 "use client";
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import { Loader2 } from "lucide-react";
 import { ORDER_STATUS_LABEL, PAYMENT_METHOD_LABEL } from "@cabana/shared";
 import { AdminShell } from "@/components/AdminShell";
 import { PageTitle, Spinner, EmptyState, StatusBadge } from "@/components/ui";
-import { useOrder, useUpdateStatus } from "@/lib/queries";
+import { OrderChat } from "@/components/OrderChat";
+import { Icon } from "@/components/icons";
+import { useOrder, useUpdateStatus, useOrderMessages } from "@/lib/queries";
 import { useRequireRole } from "@/lib/use-require-role";
 import { brl, shortDate } from "@/lib/format";
 
@@ -13,7 +16,11 @@ export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { ready, user } = useRequireRole(["ADMIN", "ATTENDANT"]);
   const { data: order, isLoading } = useOrder(id);
+  const { data: msgData } = useOrderMessages(id);
   const updateStatus = useUpdateStatus();
+  const [chatOpen, setChatOpen] = useState(false);
+
+  const unread = msgData?.messages.filter((m) => m.senderType === "CUSTOMER" && !m.readAt).length ?? 0;
 
   if (!ready) return null;
 
@@ -27,25 +34,38 @@ export default function OrderDetailPage() {
       {isLoading ? (
         <Spinner />
       ) : !order ? (
-        <EmptyState emoji="😕" title="Pedido não encontrado" />
+        <EmptyState icon={<Icon.searchX width={30} height={30} />} title="Pedido não encontrado" />
       ) : (
         <>
           <PageTitle
             title={`Pedido ${order.code}`}
             subtitle={shortDate(order.createdAt)}
             action={
-              canCancel ? (
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={() => {
-                    if (confirm("Cancelar este pedido?")) updateStatus.mutate({ id: order.id, status: "CANCELLED", note: "Cancelado pelo admin" });
-                  }}
-                  disabled={updateStatus.isPending}
-                  className="btn-ghost text-sm text-danger"
+                  onClick={() => setChatOpen(true)}
+                  className="relative flex items-center gap-1.5 rounded-xl border border-brand/30 px-3 py-2 text-sm font-semibold text-brand transition active:scale-[0.98]"
                 >
-                  {updateStatus.isPending && <Loader2 className="animate-spin" width={16} height={16} />}
-                  Cancelar pedido
+                  <Icon.bell width={16} height={16} /> Contatar cliente
+                  {unread > 0 && (
+                    <span className="grid h-5 min-w-[20px] place-items-center rounded-full bg-danger px-1 text-[11px] font-bold text-white">
+                      {unread}
+                    </span>
+                  )}
                 </button>
-              ) : null
+                {canCancel && (
+                  <button
+                    onClick={() => {
+                      if (confirm("Cancelar este pedido?")) updateStatus.mutate({ id: order.id, status: "CANCELLED", note: "Cancelado pelo admin" });
+                    }}
+                    disabled={updateStatus.isPending}
+                    className="btn-ghost text-sm text-danger"
+                  >
+                    {updateStatus.isPending && <Loader2 className="animate-spin" width={16} height={16} />}
+                    Cancelar pedido
+                  </button>
+                )}
+              </div>
             }
           />
 
@@ -79,7 +99,7 @@ export default function OrderDetailPage() {
                 <p className="text-muted">{order.customer.name}</p>
                 {order.customer.phone && <p className="text-muted">{order.customer.phone}</p>}
                 <p className="mt-2 text-muted">
-                  {order.address.street}, {order.address.number} — {order.address.neighborhood}, {order.address.city}/{order.address.state}
+                  {order.address.street}, {order.address.number} - {order.address.neighborhood}, {order.address.city}/{order.address.state}
                 </p>
               </div>
 
@@ -107,6 +127,10 @@ export default function OrderDetailPage() {
               ))}
             </ol>
           </div>
+
+          {chatOpen && (
+            <OrderChat orderId={order.id} customerName={order.customer.name} onClose={() => setChatOpen(false)} />
+          )}
         </>
       )}
     </AdminShell>

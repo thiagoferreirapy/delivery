@@ -6,6 +6,9 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthMutations } from "@/lib/queries";
 import { ApiError } from "@/lib/api";
+import { AuthShell } from "@/components/AuthShell";
+import { IconInput } from "@/components/IconInput";
+import { IconMail, IconLock } from "@/components/icons";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -28,45 +31,42 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-app flex-col justify-center px-6">
-      <div className="mb-8 text-center">
-        <p className="font-display text-3xl font-bold text-brand">Cabana Lanches</p>
-        <p className="mt-1 text-sm text-muted">Entre para pedir</p>
-      </div>
-
+    <AuthShell heading="Bem-vindo de volta" sub="Entre para continuar seus pedidos">
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
-        <input
-          className="input"
+        <IconInput
+          icon={<IconMail width={18} height={18} />}
           type="email"
           placeholder="E-mail"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
+          autoComplete="email"
         />
-        <input
-          className="input"
+        <IconInput
+          icon={<IconLock width={18} height={18} />}
           type="password"
           placeholder="Senha"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
+          autoComplete="current-password"
         />
         {error && <p className="text-sm text-danger">{error}</p>}
-        <button className="btn-primary mt-1" disabled={login.isPending}>
+        <button className="btn-primary mt-2" disabled={login.isPending}>
           {login.isPending && <Loader2 className="animate-spin" width={18} height={18} />}
           {login.isPending ? "Entrando…" : "Entrar"}
         </button>
       </form>
 
-      <p className="mt-4 text-center text-sm text-muted">
+      <p className="mt-5 text-center text-sm text-muted">
         Não tem conta?{" "}
         <Link href="/register" className="font-semibold text-brand">
           Cadastre-se
         </Link>
       </p>
-      <p className="mt-6 text-center text-xs text-muted">
-        Conta de teste já preenchida (cliente@cabana.com / cliente123).
+      <p className="mt-4 rounded-xl bg-black/[0.03] px-3 py-2 text-center text-xs text-muted">
+        Conta de teste já preenchida · cliente@cabana.com / cliente123
       </p>
-    </main>
+    </AuthShell>
   );
 }

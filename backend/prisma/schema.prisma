@@ -80,10 +80,92 @@ model Product {
   maxRemovable Int?
   extras       ProductExtra[]
   removables   ProductRemovable[]
+  optionGroups OptionGroup[]
+  // Opções de outros produtos que apontam para este (ex.: o refri dentro de um combo)
+  linkedBy     OptionItem[] @relation("OptionLinkedProduct")
   items        OrderItem[]
   coupons      Coupon[]    @relation("CouponProducts")
 
   @@index([categoryId])
+}
+
+// ===== Grupos de opções (combos, pizza meio a meio, tamanhos) =====
+// Diferente de ProductExtra (sempre aditivo e sem obrigatoriedade), um grupo
+// carrega REGRA: quantas escolhas são exigidas/permitidas e como elas somam.
+//
+// type:        "SINGLE" (radio) | "MULTI" (checkbox)
+// pricingRule: como as opções escolhidas viram preço
+//   "SUM" — soma os priceDelta (padrão; adicionais, borda, tamanho)
+//   "MAX" — cobra só o maior priceDelta (pizza meio a meio: vale o sabor mais caro)
+//   "AVG" — média dos priceDelta (pizza meio a meio: média dos sabores)
+// kind:        "ADD" (escolha que compõe/soma) | "REMOVE" (tirar ingrediente, sem custo)
+model OptionGroup {
+  id          String       @id @default(cuid())
+  productId   String
+  product     Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name        String
+  type        String       @default("SINGLE")
+  kind        String       @default("ADD")
+  // minSelect > 0 torna o grupo obrigatório — é o que ProductExtra.maxExtras nunca soube fazer
+  minSelect   Int          @default(0)
+  maxSelect   Int? // null = sem teto
+  pricingRule String       @default("SUM")
+  // permite escolher a mesma opção N vezes (ex.: 2x bacon). Só faz sentido em MULTI.
+  allowQuantity Boolean    @default(false)
+  active      Boolean      @default(true)
+  sortOrder   Int          @default(0)
+  options     OptionItem[]
+
+  @@index([productId])
+}
+
+model OptionItem {
+  id              String      @id @default(cuid())
+  groupId         String
+  group           OptionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  name            String
+  priceDelta      Decimal     @default(0)
+  // Quando preenchido, esta opção É um produto do catálogo (o refri do combo).
+  // Permite que cozinha/estoque/relatórios enxerguem o item real, não só um texto.
+  linkedProductId String?
+  linkedProduct   Product?    @relation("OptionLinkedProduct", fields: [linkedProductId], references: [id])
+  active          Boolean     @default(true)
+  sortOrder       Int         @default(0)
+
+  @@index([groupId])
+  @@index([linkedProductId])
+}
+
+// ===== Loja: horários de funcionamento =====
+// Singleton (id fixo "default") — este sistema atende UMA loja. Se um dia virar
+// multi-loja, este é o model que vira o tenant e ganha FK em Product/Order.
+model StoreSettings {
+  id        String        @id @default("default")
+  name      String        @default("Cabana Lanches")
+  // Pausa manual: fecha a loja agora, independente do horário (fila cheia, falta de insumo)
+  paused    Boolean       @default(false)
+  pausedMsg String?
+  // Minutos de tolerância para aceitar pedido antes de fechar
+  lastOrderMinutes Int    @default(0)
+  hours     OpeningHour[]
+  updatedAt DateTime      @updatedAt
+}
+
+// Uma faixa de funcionamento. Vários registros no mesmo weekday = vários turnos
+// (ex.: almoço 11:00-15:00 e jantar 18:00-23:00).
+// opensAt/closesAt em "HH:MM" local. closesAt <= opensAt significa que vira o dia
+// (ex.: 19:00 -> 02:00).
+model OpeningHour {
+  id        String        @id @default(cuid())
+  storeId   String        @default("default")
+  store     StoreSettings @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  weekday   Int // 0=domingo .. 6=sábado
+  opensAt   String
+  closesAt  String
+  active    Boolean       @default(true)
+
+  @@index([storeId])
+  @@index([weekday])
 }
 
 // ===== Cupons de desconto (código digitado no checkout) =====
@@ -160,6 +242,7 @@ model Order {
   delivery      Delivery?
   rating        Rating?
   history       OrderStatusHistory[]
+  messages      OrderMessage[]
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
 
@@ -175,10 +258,14 @@ model OrderItem {
   productId String
   product   Product @relation(fields: [productId], references: [id])
   quantity  Int
-  unitPrice Decimal // já inclui os extras selecionados
+  unitPrice Decimal // já inclui extras e opções selecionadas
   notes     String?
   extrasJson  String? // JSON: [{ name, price, quantity }]
   removedJson String? // JSON: ["ingrediente", ...]
+  // Escolhas dos OptionGroups (combo, sabores, tamanho). Snapshot, igual extrasJson:
+  // JSON: [{ groupName, kind, pricingRule, options: [{ name, price, quantity, linkedProductId }] }]
+  // Pedidos anteriores aos grupos têm null aqui — serialize trata os dois casos.
+  selectionsJson String?
 
   @@index([orderId])
 }
@@ -192,6 +279,23 @@ model OrderStatusHistory {
   note              String?
   photoUrl          String?
   createdAt         DateTime @default(now())
+
+  @@index([orderId])
+}
+
+// Mensagens do pedido, em 2 canais (channel): "STORE" (loja<->cliente) e
+// "COURIER" (entregador<->cliente). senderType: "EMPLOYEE"|"CUSTOMER"|"COURIER".
+model OrderMessage {
+  id         String    @id @default(cuid())
+  orderId    String
+  order      Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  channel    String    @default("STORE")
+  senderType String
+  senderId   String
+  senderName String
+  body       String
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
 
   @@index([orderId])
 }
@@ -233,6 +337,15 @@ model Courier {
   phone          String     @unique
   password       String
   active         Boolean    @default(true)
+  // Cadastro / documentos (preenchidos pelo admin no cadastro)
+  photoUrl       String?
+  birthDate      DateTime?
+  cpf            String?
+  cpfFrontUrl    String?
+  cpfBackUrl     String?
+  cnh            String?
+  cnhFrontUrl    String?
+  cnhBackUrl     String?
   currentLat     Float?
   currentLng     Float?
   lastLocationAt DateTime?

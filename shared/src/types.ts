@@ -15,6 +15,7 @@ export interface AuthUser {
   phone?: string | null;
   scope: AuthScope;
   role?: EmployeeRole; // apenas EMPLOYEE
+  photoUrl?: string | null; // apenas COURIER (foto do entregador)
 }
 
 export interface AuthResponse {
@@ -42,6 +43,36 @@ export interface ProductRemovableDTO {
   name: string;
 }
 
+// ===== Grupos de opções =====
+// "SINGLE" = escolhe 1 (radio) | "MULTI" = escolhe vários (checkbox)
+export type OptionGroupType = "SINGLE" | "MULTI";
+// "ADD" = a escolha compõe/soma | "REMOVE" = tirar ingrediente (sem custo)
+export type OptionGroupKind = "ADD" | "REMOVE";
+// Como as escolhas do grupo viram preço:
+// SUM = soma tudo | MAX = cobra a mais cara | AVG = média (pizza meio a meio)
+export type OptionPricingRule = "SUM" | "MAX" | "AVG";
+
+export interface OptionItemDTO {
+  id: string;
+  name: string;
+  priceDelta: number;
+  linkedProductId: string | null;
+  active: boolean;
+}
+
+export interface OptionGroupDTO {
+  id: string;
+  name: string;
+  type: OptionGroupType;
+  kind: OptionGroupKind;
+  minSelect: number; // > 0 => grupo obrigatório
+  maxSelect: number | null; // null = sem teto
+  pricingRule: OptionPricingRule;
+  allowQuantity: boolean;
+  sortOrder: number;
+  options: OptionItemDTO[];
+}
+
 export interface ProductDTO {
   id: string;
   categoryId: string;
@@ -65,6 +96,8 @@ export interface ProductDTO {
   maxRemovable: number | null; // null = à vontade
   extras: ProductExtraDTO[];
   removables: ProductRemovableDTO[];
+  // Grupos com regra (combo, sabores de pizza, tamanho). Vazio na maioria dos produtos.
+  optionGroups: OptionGroupDTO[];
 }
 
 // Item de pedido: extras escolhidos + ingredientes removidos
@@ -72,6 +105,42 @@ export interface OrderItemExtra {
   name: string;
   price: number;
   quantity: number;
+}
+
+// Snapshot de uma escolha de grupo, como gravada no pedido
+export interface OrderItemSelectionOption {
+  name: string;
+  price: number; // priceDelta no momento do pedido
+  quantity: number;
+  linkedProductId: string | null;
+}
+
+export interface OrderItemSelection {
+  groupName: string;
+  kind: OptionGroupKind;
+  pricingRule: OptionPricingRule;
+  options: OrderItemSelectionOption[];
+}
+
+// ===== Loja (horários de funcionamento) =====
+export interface OpeningHourDTO {
+  id: string;
+  weekday: number; // 0=domingo .. 6=sábado
+  opensAt: string; // "HH:MM"
+  closesAt: string; // "HH:MM" — se <= opensAt, vira o dia (ex.: 19:00 -> 02:00)
+  active: boolean;
+}
+
+export interface StoreDTO {
+  name: string;
+  paused: boolean; // pausa manual do admin, independente do horário
+  pausedMsg: string | null;
+  lastOrderMinutes: number; // tolerância p/ aceitar pedido antes de fechar
+  hours: OpeningHourDTO[];
+  // Derivados pelo servidor (fonte da verdade — o client não recalcula)
+  open: boolean;
+  closedReason: string | null; // por que está fechada agora
+  nextOpenAt: string | null; // ISO do próximo horário de abertura
 }
 
 // ===== Cupons =====
@@ -125,10 +194,12 @@ export interface OrderItemDTO {
   name: string;
   imageUrl: string | null;
   quantity: number;
-  unitPrice: number; // já inclui extras
+  unitPrice: number; // já inclui extras e opções
   notes: string | null;
   extras: OrderItemExtra[];
   removed: string[];
+  // Escolhas dos grupos (combo/sabores). Vazio em pedidos antigos e em produtos sem grupo.
+  selections: OrderItemSelection[];
 }
 
 export interface OrderStatusHistoryDTO {
@@ -148,6 +219,24 @@ export interface CourierPublicDTO {
   currentLat?: number | null;
   currentLng?: number | null;
   lastLocationAt?: string | null;
+}
+
+// Cadastro completo do entregador (admin e o próprio entregador). NUNCA é
+// exposto ao cliente — só via /couriers (admin) e /courier/profile (o próprio).
+export interface CourierFullDTO {
+  id: string;
+  name: string;
+  phone: string;
+  active: boolean;
+  photoUrl: string | null;
+  birthDate: string | null;
+  cpf: string | null;
+  cpfFrontUrl: string | null;
+  cpfBackUrl: string | null;
+  cnh: string | null;
+  cnhFrontUrl: string | null;
+  cnhBackUrl: string | null;
+  createdAt: string;
 }
 
 export interface OrderDTO {
@@ -172,6 +261,39 @@ export interface OrderDTO {
   rating?: { stars: number; comment: string | null } | null;
   createdAt: string;
   updatedAt: string;
+}
+
+// ===== Chat do pedido =====
+// Dois canais por pedido: STORE (loja<->cliente) e COURIER (entregador<->cliente).
+export type MessageSenderType = "EMPLOYEE" | "CUSTOMER" | "COURIER";
+export type MessageChannel = "STORE" | "COURIER";
+
+export interface OrderMessageDTO {
+  id: string;
+  orderId: string;
+  channel: MessageChannel;
+  senderType: MessageSenderType;
+  senderId: string;
+  senderName: string;
+  body: string;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface OrderMessagesResponse {
+  messages: OrderMessageDTO[];
+  chatOpen: boolean; // false quando o pedido está finalizado
+}
+
+export interface OrderMessageEvent {
+  orderId: string;
+  code?: string;
+  message: OrderMessageDTO;
+}
+
+export interface MessageReadEvent {
+  orderId: string;
+  readerType: MessageSenderType;
 }
 
 // Payload de eventos socket

@@ -93,6 +93,8 @@ async function broadcast(dto: OrderDTO, from: OrderStatus): Promise<void> {
     case "CONFIRMED":
       // novo pedido entra na fila da cozinha
       emit(rooms.kitchen(), SOCKET_EVENTS.KITCHEN_NEW, statusEvent);
+      // e avisa o painel de pedidos (admin/atendente na sala "support")
+      emit(rooms.support(), SOCKET_EVENTS.ORDER_NEW, statusEvent);
       break;
     case "PREPARING":
       emit(rooms.kitchen(), SOCKET_EVENTS.KITCHEN_UPDATE, statusEvent);

@@ -101,7 +101,7 @@ export default function NewOrderPage() {
                 {customer.addresses.map((a) => (
                   <label key={a.id} className={`flex cursor-pointer items-start gap-2 rounded-xl border p-2 text-sm ${addressId === a.id ? "border-brand bg-brand/5" : "border-black/10"}`}>
                     <input type="radio" checked={addressId === a.id} onChange={() => setAddressId(a.id)} className="mt-1 accent-brand" />
-                    <span><b>{a.label}</b> — {a.street}, {a.number}, {a.neighborhood}, {a.city}/{a.state}</span>
+                    <span><b>{a.label}</b> - {a.street}, {a.number}, {a.neighborhood}, {a.city}/{a.state}</span>
                   </label>
                 ))}
                 {customer.addresses.length === 0 && <p className="text-sm text-danger">Cliente sem endereço cadastrado.</p>}

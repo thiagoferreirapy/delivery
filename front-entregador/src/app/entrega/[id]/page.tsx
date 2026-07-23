@@ -1,15 +1,18 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
-import { useParams } from "next/navigation";
-import { PAYMENT_METHOD_LABEL } from "@cabana/shared";
+import { useParams, useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+import { PAYMENT_METHOD_LABEL, SOCKET_EVENTS } from "@cabana/shared";
 import { PageHeader, EmptyState, StatusBadge } from "@/components/ui";
 import { DeliveryDetailSkeleton } from "@/components/Skeleton";
 import { LiveMap } from "@/components/LiveMap";
-import { IconCamera, IconMapPin, IconPhone, IconMoney, IconCheck } from "@/components/icons";
+import { OrderChat } from "@/components/OrderChat";
+import { IconCamera, IconMapPin, IconPhone, IconMoney, IconCheck, IconMessage, IconPackageX } from "@/components/icons";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { useDelivery, useDeliveryAction } from "@/lib/queries";
+import { getSocket } from "@/lib/socket";
+import { useDelivery, useDeliveryAction, useOrderMessages } from "@/lib/queries";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useLocationStore } from "@/lib/location-store";
 import { apiUpload } from "@/lib/api";
@@ -17,15 +20,40 @@ import { brl } from "@/lib/format";
 
 export default function DeliveryDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const qc = useQueryClient();
   const { ready } = useRequireAuth();
   const { data: order, isLoading } = useDelivery(id);
+  const { data: msgData } = useOrderMessages(id);
   const action = useDeliveryAction();
   const { lat, lng } = useLocationStore();
+
+  // Tempo real: acompanha mudanças de status do pedido (ex.: cliente confirma o
+  // recebimento) para atualizar a tela na hora, sem precisar recarregar.
+  useEffect(() => {
+    if (!id || !ready) return;
+    const socket = getSocket();
+    socket.emit("order:subscribe", id);
+    const refresh = () => {
+      qc.invalidateQueries({ queryKey: ["delivery", id] });
+      qc.invalidateQueries({ queryKey: ["deliveries"] });
+    };
+    socket.on(SOCKET_EVENTS.ORDER_STATUS, refresh);
+    socket.on(SOCKET_EVENTS.ORDER_DELIVERED, refresh);
+    return () => {
+      socket.emit("order:unsubscribe", id);
+      socket.off(SOCKET_EVENTS.ORDER_STATUS, refresh);
+      socket.off(SOCKET_EVENTS.ORDER_DELIVERED, refresh);
+    };
+  }, [id, ready, qc]);
 
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [chat, setChat] = useState(false);
+
+  const unread = msgData?.messages.filter((m) => m.senderType === "CUSTOMER" && !m.readAt).length ?? 0;
 
   if (!ready || isLoading)
     return (
@@ -34,7 +62,7 @@ export default function DeliveryDetailPage() {
         <DeliveryDetailSkeleton />
       </div>
     );
-  if (!order) return <EmptyState emoji="😕" title="Entrega não encontrada" />;
+  if (!order) return <EmptyState icon={<IconPackageX width={30} height={30} />} title="Entrega não encontrada" />;
 
   const needsPayment = order.paymentMethod !== "PIX";
   const me = lat != null && lng != null ? { lat, lng } : null;
@@ -86,12 +114,27 @@ export default function DeliveryDetailPage() {
             <IconMapPin className="mt-0.5 shrink-0 text-brand" width={16} height={16} />
             <span>
               {order.address.street}, {order.address.number}
-              {order.address.complement ? ` — ${order.address.complement}` : ""}
+              {order.address.complement ? `, ${order.address.complement}` : ""}
               <br />
               {order.address.neighborhood}, {order.address.city}/{order.address.state}
             </span>
           </p>
         </section>
+
+        {/* Falar com o cliente (em rota) */}
+        {order.status === "IN_ROUTE" && (
+          <button
+            onClick={() => setChat(true)}
+            className="flex items-center justify-center gap-2 rounded-xl border border-brand/30 py-2.5 text-sm font-semibold text-brand transition active:scale-[0.98]"
+          >
+            <IconMessage width={16} height={16} /> Falar com o cliente
+            {unread > 0 && (
+              <span className="grid h-5 min-w-[20px] place-items-center rounded-full bg-danger px-1 text-[11px] font-bold text-white">
+                {unread}
+              </span>
+            )}
+          </button>
+        )}
 
         {/* Mapa quando em rota */}
         {order.status === "IN_ROUTE" && <LiveMap me={me} dest={dest} />}
@@ -122,7 +165,16 @@ export default function DeliveryDetailPage() {
         )}
 
         {order.status === "PICKED_UP" && (
-          <button onClick={() => action.mutate({ id: order.id, action: "start-route" })} disabled={action.isPending} className="btn-primary w-full">
+          <button
+            onClick={() =>
+              action.mutate(
+                { id: order.id, action: "start-route" },
+                { onSuccess: () => router.push(`/rota?order=${order.id}`) }
+              )
+            }
+            disabled={action.isPending}
+            className="btn-primary w-full"
+          >
             {action.isPending && <Loader2 className="animate-spin" width={18} height={18} />}
             Iniciar rota
           </button>
@@ -162,7 +214,7 @@ export default function DeliveryDetailPage() {
 
         {order.status === "DELIVERED" && (
           <div className="rounded-2xl bg-success/10 px-4 py-3 text-center text-sm font-medium text-success">
-            Entrega concluída — aguardando confirmação do cliente.
+            Entrega concluída. Aguardando confirmação do cliente.
           </div>
         )}
         {order.status === "CONFIRMED_BY_CUSTOMER" && (
@@ -171,6 +223,8 @@ export default function DeliveryDetailPage() {
           </div>
         )}
       </div>
+
+      {chat && <OrderChat orderId={order.id} customerName={order.customer.name} onClose={() => setChat(false)} />}
     </div>
   );
 }

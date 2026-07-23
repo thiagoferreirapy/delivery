@@ -4,12 +4,21 @@ import jwt from "jsonwebtoken";
 import { rooms, SOCKET_EVENTS } from "@cabana/shared";
 import type { AccessTokenPayload } from "../lib/jwt.js";
 import { env } from "../config/env.js";
+import { isLanOrNgrok } from "../lib/cors.js";
 
 let io: Server | null = null;
 
 export function initSocket(httpServer: HttpServer): Server {
   io = new Server(httpServer, {
-    cors: { origin: env.corsOrigins, credentials: true },
+    cors: {
+      credentials: true,
+      // Mesma política do Express: lista fixa, IP de rede local (LAN), ngrok, e
+      // requests sem origin (curl/app nativo).
+      origin(origin, cb) {
+        const ok = !origin || env.corsOrigins.includes(origin) || isLanOrNgrok(origin);
+        cb(ok ? null : new Error(`Origin não permitida: ${origin}`), ok);
+      },
+    },
   });
 
   // auth opcional: se vier token, entra na sala do usuário/entregador automaticamente
@@ -37,6 +46,10 @@ export function initSocket(httpServer: HttpServer): Server {
         // cozinha e expedição recebem feed conforme papel; ADMIN entra em ambas
         if (user.role === "KITCHEN" || user.role === "ADMIN") socket.join(rooms.kitchen());
         if (user.role === "DISPATCH" || user.role === "ADMIN") socket.join(rooms.dispatch());
+        // atendimento ao cliente (chat do pedido): ADMIN, ATTENDANT, DISPATCH
+        if (user.role === "ADMIN" || user.role === "ATTENDANT" || user.role === "DISPATCH") {
+          socket.join(rooms.support());
+        }
       }
     }
 
@@ -61,6 +74,15 @@ export function getIO(): Server {
 export function emit(room: string, event: string, payload: unknown): void {
   if (!io) return;
   io.to(room).emit(event, payload);
+}
+
+// Emit para várias salas em uma única chamada — o socket.io deduplica os
+// destinatários que estão em mais de uma sala (evita mensagem dobrada).
+export function emitTo(roomList: string[], event: string, payload: unknown): void {
+  if (!io || roomList.length === 0) return;
+  let chain: any = io;
+  for (const r of roomList) chain = chain.to(r);
+  chain.emit(event, payload);
 }
 
 export { SOCKET_EVENTS, rooms };

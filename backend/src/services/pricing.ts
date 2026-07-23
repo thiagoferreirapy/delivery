@@ -10,12 +10,29 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 export interface PricedItem {
   productId: string;
   quantity: number;
-  unitPrice: number; // base (com promo/PIX) + extras, por unidade
+  unitPrice: number; // base (com promo/PIX) + extras + opções, por unidade
   notes: string | null;
   extrasJson: string | null;
   removedJson: string | null;
+  selectionsJson: string | null;
   lineTotal: number; // unitPrice * quantity
   categoryId: string;
+}
+
+// Aplica a regra de preço do grupo sobre as opções escolhidas.
+//   SUM — soma tudo (adicionais, borda, tamanho)
+//   MAX — cobra só a opção mais cara (pizza meio a meio: vale o sabor mais caro)
+//   AVG — média das escolhas (pizza meio a meio: média dos sabores)
+// Em MAX/AVG a quantidade é ignorada de propósito: são regras de rateio entre
+// escolhas distintas, não de repetição da mesma escolha.
+function applyPricingRule(
+  rule: string,
+  selected: { price: number; quantity: number }[]
+): number {
+  if (!selected.length) return 0;
+  if (rule === "MAX") return Math.max(...selected.map((o) => o.price));
+  if (rule === "AVG") return selected.reduce((s, o) => s + o.price, 0) / selected.length;
+  return selected.reduce((s, o) => s + o.price * o.quantity, 0);
 }
 
 export interface PriceResult {
@@ -36,7 +53,15 @@ export async function priceOrder(input: QuoteInput): Promise<PriceResult> {
   const productIds = input.items.map((i) => i.productId);
   const products = await prisma.product.findMany({
     where: { id: { in: productIds }, active: true },
-    include: { extras: true, removables: true },
+    include: {
+      extras: true,
+      removables: true,
+      optionGroups: {
+        where: { active: true },
+        orderBy: { sortOrder: "asc" },
+        include: { options: { orderBy: { sortOrder: "asc" } } },
+      },
+    },
   });
   const byId = new Map(products.map((p) => [p.id, p]));
 
@@ -73,7 +98,70 @@ export async function priceOrder(input: QuoteInput): Promise<PriceResult> {
       throw badRequest(`Máximo de ${p.maxRemovable} remoções em ${p.name}`);
     }
 
-    const unit = round2(base + extrasSum);
+    // ===== Grupos de opções (combo, sabores de pizza, tamanho) =====
+    // O client manda ids; nome, preço e regra vêm sempre do servidor.
+    const wanted = new Map((item.selections ?? []).map((s) => [s.id, s.quantity ?? 1]));
+    const knownOptionIds = new Set(
+      p.optionGroups.flatMap((g) => g.options.map((o) => o.id))
+    );
+    for (const id of wanted.keys()) {
+      if (!knownOptionIds.has(id)) throw badRequest(`Opção inválida em ${p.name}`);
+    }
+
+    const selectionSnapshots: any[] = [];
+    let selectionsSum = 0;
+
+    for (const g of p.optionGroups) {
+      const chosen = g.options
+        .filter((o) => wanted.has(o.id))
+        .map((o) => ({
+          name: o.name,
+          price: dec(o.priceDelta),
+          quantity: wanted.get(o.id)!,
+          linkedProductId: o.linkedProductId ?? null,
+          active: o.active,
+        }));
+
+      if (chosen.some((o) => !o.active)) {
+        throw badRequest(`Opção indisponível em ${g.name} (${p.name})`);
+      }
+      if (!g.allowQuantity && chosen.some((o) => o.quantity !== 1)) {
+        throw badRequest(`${g.name} não permite repetir a mesma opção`);
+      }
+
+      // minSelect/maxSelect contam ESCOLHAS DISTINTAS, não a soma das quantidades:
+      // "escolha até 2 sabores" = 2 sabores diferentes, não 2 unidades do mesmo.
+      const count = chosen.length;
+      if (count < g.minSelect) {
+        throw badRequest(
+          g.minSelect === 1
+            ? `Escolha uma opção em "${g.name}" (${p.name})`
+            : `Escolha ao menos ${g.minSelect} opções em "${g.name}" (${p.name})`
+        );
+      }
+      if (g.maxSelect != null && count > g.maxSelect) {
+        throw badRequest(`Máximo de ${g.maxSelect} em "${g.name}" (${p.name})`);
+      }
+      if (g.type === "SINGLE" && count > 1) {
+        throw badRequest(`"${g.name}" aceita apenas uma escolha (${p.name})`);
+      }
+      if (!count) continue;
+
+      selectionsSum += applyPricingRule(g.pricingRule, chosen);
+      selectionSnapshots.push({
+        groupName: g.name,
+        kind: g.kind,
+        pricingRule: g.pricingRule,
+        options: chosen.map(({ name, price, quantity, linkedProductId }) => ({
+          name,
+          price,
+          quantity,
+          linkedProductId,
+        })),
+      });
+    }
+
+    const unit = round2(base + extrasSum + selectionsSum);
     const lineTotal = round2(unit * item.quantity);
     subtotal += lineTotal;
     if (isPix) pixSavings += (promo - base) * item.quantity;
@@ -85,6 +173,7 @@ export async function priceOrder(input: QuoteInput): Promise<PriceResult> {
       notes: item.notes ?? null,
       extrasJson: selectedExtras.length ? JSON.stringify(selectedExtras) : null,
       removedJson: removedNames.length ? JSON.stringify(removedNames) : null,
+      selectionsJson: selectionSnapshots.length ? JSON.stringify(selectionSnapshots) : null,
       lineTotal,
       categoryId: p.categoryId,
     };

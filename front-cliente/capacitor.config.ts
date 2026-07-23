@@ -1,24 +1,25 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
-// Empacotamento mobile (Android/iOS) do app do cliente.
-// Estratégia: apontar para o app Next.js servido (dev: LAN; prod: URL hospedada),
-// preservando os recursos dinâmicos do App Router.
+// Empacotamento mobile (Android/iOS) do app do CLIENTE — estratégia server.url:
+// o app nativo é um shell que carrega o Next em execução, preservando todas as
+// rotas dinâmicas do App Router e o realtime (socket).
 //
-// Passos para gerar o app nativo (quando quiser):
-//   1) pnpm --filter @cabana/front-cliente build   (ou rode `next dev`/deploy)
-//   2) ajuste `server.url` abaixo para o IP/host acessível pelo device
-//   3) pnpm --filter @cabana/front-cliente cap:add:android
-//   4) npx cap sync && npx cap open android
+//  - Dev  : CAP_SERVER_URL=http://SEU_IP_LAN:3000  (ex.: http://192.168.15.2:3000) + `next dev`
+//  - Prod : CAP_SERVER_URL=https://cliente.seudominio.com
+//
+// Fluxo:
+//   1) suba o front  (pnpm dev:cliente)  ou hospede
+//   2) CAP_SERVER_URL=http://IP:3000 pnpm --filter @cabana/front-cliente cap:sync
+//   3) pnpm --filter @cabana/front-cliente cap:open:android   (abre no Android Studio)
 const config: CapacitorConfig = {
   appId: "com.cabanalanches.cliente",
   appName: "Cabana Lanches",
-  // webDir só é usado em modo estático; com server.url o app carrega da URL.
-  webDir: "public",
+  // webDir é o fallback estático (tela de "conectando"). Com server.url o app
+  // carrega da URL; o Capacitor ainda exige que este diretório exista.
+  webDir: "www",
   server: {
-    // Em dev, troque para http://SEU_IP_LAN:3000 e rode `next dev`.
-    // Deixe comentado para builds estáticos.
-    url: process.env.CAP_SERVER_URL || "http://localhost:3000",
-    cleartext: true,
+    url: process.env.CAP_SERVER_URL || "http://192.168.15.2:3000",
+    cleartext: true, // permite http em rede local (dev). Em prod use https e remova.
   },
   backgroundColor: "#FBF7F2",
 };

@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { CourierShell } from "@/components/CourierShell";
 import { EmptyState, StatusBadge } from "@/components/ui";
+import { IconInbox } from "@/components/icons";
 import { HistoryListSkeleton } from "@/components/Skeleton";
 import { useDeliveries } from "@/lib/queries";
 import { useRequireAuth } from "@/lib/use-require-auth";
@@ -20,7 +21,7 @@ export default function HistoryPage() {
         {isLoading ? (
           <HistoryListSkeleton count={4} />
         ) : deliveries.length === 0 ? (
-          <EmptyState emoji="📭" title="Sem entregas concluídas" />
+          <EmptyState icon={<IconInbox width={30} height={30} />} title="Sem entregas concluídas" subtitle="Suas entregas finalizadas aparecem aqui." />
         ) : (
           <div className="flex flex-col gap-3">
             {deliveries.map((o) => (

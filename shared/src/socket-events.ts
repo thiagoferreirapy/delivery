@@ -8,6 +8,11 @@ export const SOCKET_EVENTS = {
   COURIER_ASSIGNED: "courier:assigned",
   COURIER_LOCATION: "courier:location",
   ORDER_DELIVERED: "order:delivered",
+  // novo pedido confirmado (feed do painel: admin/atendente na sala "support")
+  ORDER_NEW: "order:new",
+  // chat pedido (loja <-> cliente)
+  MESSAGE_NEW: "message:new",
+  MESSAGE_READ: "message:read",
 } as const;
 
 export const rooms = {
@@ -16,4 +21,6 @@ export const rooms = {
   kitchen: () => "kitchen",
   dispatch: () => "dispatch",
   courier: (courierId: string) => `courier:${courierId}`,
+  // painel de atendimento (todos os funcionários que conversam com clientes)
+  support: () => "support",
 };

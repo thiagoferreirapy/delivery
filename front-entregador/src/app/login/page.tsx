@@ -5,6 +5,9 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { useCourierLogin } from "@/lib/queries";
 import { ApiError } from "@/lib/api";
+import { AuthShell } from "@/components/AuthShell";
+import { IconInput } from "@/components/IconInput";
+import { IconPhone, IconKey } from "@/components/icons";
 
 export default function CourierLoginPage() {
   const router = useRouter();
@@ -27,26 +30,42 @@ export default function CourierLoginPage() {
   }
 
   return (
-    <main className="grid min-h-dvh place-items-center bg-brand px-6">
-      <div className="w-full max-w-sm rounded-3xl bg-cream p-8 shadow-soft">
-        <div className="mb-6 text-center">
-          <p className="text-4xl">🛵</p>
-          <p className="mt-2 font-display text-2xl font-bold text-brand">Cabana Entregas</p>
-          <p className="mt-1 text-sm text-muted">Acesso do entregador</p>
-        </div>
-        <form onSubmit={onSubmit} className="flex flex-col gap-3">
-          <input className="input" placeholder="Telefone" value={phone} onChange={(e) => setPhone(e.target.value)} required />
-          <input className="input" type="password" placeholder="Senha" value={password} onChange={(e) => setPassword(e.target.value)} required />
-          {error && <p className="text-sm text-danger">{error}</p>}
-          <button className="btn-primary mt-1" disabled={login.isPending}>
-            {login.isPending && <Loader2 className="animate-spin" width={18} height={18} />}
-            {login.isPending ? "Entrando…" : "Entrar"}
-          </button>
-        </form>
-        <p className="mt-5 text-center text-xs text-muted">
-          Acesso criado pelo restaurante. Teste: 11999990001 / entregador123
-        </p>
-      </div>
-    </main>
+    <AuthShell
+      heading="Acesso do entregador"
+      sub="Entre para ver suas entregas"
+      eyebrow="Cabana Entregas"
+      title="Suas entregas em tempo real"
+      tagline="Rotas, mapa ao vivo e pagamentos num só app."
+      videos={["/entregas.mp4"]}
+    >
+      <form onSubmit={onSubmit} className="flex flex-col gap-3">
+        <IconInput
+          icon={<IconPhone width={18} height={18} />}
+          placeholder="Telefone"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          required
+          inputMode="tel"
+          autoComplete="username"
+        />
+        <IconInput
+          icon={<IconKey width={18} height={18} />}
+          type="password"
+          placeholder="Senha"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          autoComplete="current-password"
+        />
+        {error && <p className="text-sm text-danger">{error}</p>}
+        <button className="btn-primary mt-2" disabled={login.isPending}>
+          {login.isPending && <Loader2 className="animate-spin" width={18} height={18} />}
+          {login.isPending ? "Entrando…" : "Entrar"}
+        </button>
+      </form>
+      <p className="mt-5 rounded-xl bg-black/[0.03] px-3 py-2 text-center text-xs text-muted">
+        Acesso criado pelo restaurante · teste: 11999990001 / entregador123
+      </p>
+    </AuthShell>
   );
 }

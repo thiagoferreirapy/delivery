@@ -7,12 +7,20 @@
     "build": "next build",
     "start": "next start -p 3000",
     "lint": "next lint",
-    "cap:sync": "next build && cap sync",
-    "cap:add:android": "cap add android"
+    "cap:sync": "cap sync",
+    "cap:add:android": "cap add android",
+    "cap:copy": "cap copy",
+    "cap:add:ios": "cap add ios",
+    "cap:open:android": "cap open android",
+    "cap:open:ios": "cap open ios",
+    "cap:run:android": "cap run android"
   },
   "dependencies": {
     "@cabana/shared": "workspace:*",
+    "@capacitor/android": "^6.2.1",
+    "@capacitor/ios": "^6.2.1",
     "@tanstack/react-query": "^5.51.1",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.408.0",
     "next": "14.2.5",
     "react": "^18.3.1",
@@ -22,8 +30,9 @@
     "zustand": "^4.5.4"
   },
   "devDependencies": {
-    "@capacitor/cli": "^6.1.2",
-    "@capacitor/core": "^6.1.2",
+    "@capacitor/cli": "^6.2.1",
+    "@capacitor/core": "^6.2.1",
+    "@types/leaflet": "^1.9.12",
     "@types/node": "^20.14.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",

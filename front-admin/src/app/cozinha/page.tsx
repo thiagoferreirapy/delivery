@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useRef } from "react";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { SOCKET_EVENTS, type OrderDTO, type OrderStatus } from "@cabana/shared";
+import { SOCKET_EVENTS, type OrderDTO, type OrderStatus, type OrderStatusEvent } from "@cabana/shared";
 import { AdminShell } from "@/components/AdminShell";
 import { PageTitle } from "@/components/ui";
 import { KitchenSkeleton } from "@/components/Skeleton";
@@ -28,8 +29,11 @@ export default function KitchenPage() {
     if (!ready) return;
     const socket = getSocket();
     const refresh = () => qc.invalidateQueries({ queryKey: ["kitchen"] });
-    const onNew = () => {
+    const onNew = (e: OrderStatusEvent) => {
       refresh();
+      toast.success(`Novo pedido na cozinha${e?.code ? ` - ${e.code}` : ""}`, {
+        description: "Um novo pedido acabou de chegar.",
+      });
       try {
         const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
         const o = ctx.createOscillator();

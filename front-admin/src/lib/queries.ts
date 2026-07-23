@@ -13,6 +13,9 @@ import type {
   CourierInput,
   CouponDTO,
   CouponInput,
+  OrderMessageDTO,
+  OrderMessagesResponse,
+  CourierFullDTO,
 } from "@cabana/shared";
 import { api } from "./api";
 import { useAuthStore } from "./auth-store";
@@ -32,9 +35,19 @@ export interface Stats {
   ordersToday: number;
   revenueToday: number;
   avgTicket: number;
-  byStatus: Record<string, number>;
+  ordersYesterday: number;
+  revenueYesterday: number;
+  deliveredToday: number;
+  activeOrders: number;
+  customersTotal: number;
+  revenue7d: number;
+  orders7d: number;
   avgRating: number | null;
   ratingCount: number;
+  byStatus: Record<string, number>;
+  revenueByDay: { date: string; orders: number; revenue: number }[];
+  paymentMethods: { method: string; count: number; total: number }[];
+  topProducts: { name: string; qty: number; revenue: number }[];
 }
 export function useStats() {
   return useQuery({ queryKey: ["stats"], queryFn: () => api<Stats>("/admin/stats"), refetchInterval: 15_000 });
@@ -91,6 +104,35 @@ export function useUpdateStatus() {
       qc.invalidateQueries({ queryKey: ["kitchen"] });
       qc.invalidateQueries({ queryKey: ["dispatch"] });
     },
+  });
+}
+
+// ===== Chat do pedido (loja <-> cliente) =====
+export function useOrderMessages(orderId: string) {
+  return useQuery({
+    queryKey: ["order-messages", orderId],
+    queryFn: () => api<OrderMessagesResponse>(`/orders/${orderId}/messages`),
+    enabled: !!orderId,
+    // Em localhost o WebSocket entrega as mensagens (SOCKET_EVENTS.MESSAGE_NEW).
+    // refetchOnMount garante histórico fresco ao abrir o chat.
+    // (Para ngrok, reative o polling: refetchInterval: 3000 — ver .env.local.ngrok)
+    refetchOnMount: "always",
+    staleTime: 0,
+  });
+}
+export function useSendMessage(orderId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: string) =>
+      api<OrderMessageDTO>(`/orders/${orderId}/messages`, { method: "POST", body: { body } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["order-messages", orderId] }),
+  });
+}
+export function useMarkMessagesRead(orderId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api<{ ok: boolean }>(`/orders/${orderId}/messages/read`, { method: "POST" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["order-messages", orderId] }),
   });
 }
 
@@ -162,7 +204,7 @@ export function useEmployeeMutations() {
 
 // ===== Entregadores =====
 export function useCouriers() {
-  return useQuery({ queryKey: ["couriers"], queryFn: () => api<CourierPublicDTO[]>("/couriers") });
+  return useQuery({ queryKey: ["couriers"], queryFn: () => api<CourierFullDTO[]>("/couriers") });
 }
 export function useCourierMutations() {
   const qc = useQueryClient();

@@ -59,4 +59,9 @@ export const env = {
   },
 
   deliveryFee: num("DELIVERY_FEE", 7.9),
+
+  // Fuso da loja. Os horários de funcionamento são "HH:MM" no relógio da loja,
+  // então precisam ser avaliados neste fuso — não no do servidor (que em produção
+  // costuma ser UTC e faria a loja abrir na hora errada).
+  storeTimezone: process.env.STORE_TIMEZONE ?? "America/Sao_Paulo",
 };

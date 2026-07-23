@@ -55,3 +55,29 @@ h3,
     @apply mb-1 block text-sm font-medium text-ink;
   }
 }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up { animation: fadeUp 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes floatY {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.animate-float { animation: floatY 4s ease-in-out infinite; }
+/* Onboarding/login — animações do vídeo (rise-blur, linha, breathe) */
+@keyframes riseBlur {
+  from { opacity: 0; transform: translateY(var(--rise, 40px)); filter: blur(var(--blur, 10px)); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+@keyframes growLine { from { width: 0; } to { width: 92px; } }
+@keyframes breathe { from { transform: scale(1.02); } to { transform: scale(1.1); } }
+.auth-bg { animation: breathe 24s ease-in-out infinite alternate; }
+.auth-eyebrow { opacity: 0; animation: riseBlur .8s cubic-bezier(.16,1,.3,1) both; animation-delay: .25s; --rise: 18px; --blur: 6px; }
+.auth-word { display: inline-block; opacity: 0; animation: riseBlur .8s cubic-bezier(.16,1,.3,1) both; animation-delay: calc(.5s + var(--i) * .12s); --rise: 40px; --blur: 12px; }
+.auth-accent { width: 0; animation: growLine .7s cubic-bezier(.16,1,.3,1) both; animation-delay: 1.35s; }
+.auth-sub { opacity: 0; animation: riseBlur 1s cubic-bezier(.16,1,.3,1) both; animation-delay: 1.6s; --rise: 28px; --blur: 8px; }
+@media (prefers-reduced-motion: reduce) {
+  .auth-bg, .auth-eyebrow, .auth-word, .auth-accent, .auth-sub { animation: none; opacity: 1; transform: none; filter: none; }
+  .auth-accent { width: 92px; }
+}

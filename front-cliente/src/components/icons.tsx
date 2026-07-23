@@ -23,6 +23,9 @@ import {
   Pencil,
   KeyRound,
   Phone,
+  MessageCircle,
+  Mail,
+  Lock,
 } from "lucide-react";
 
 // Wrappers finos sobre lucide-react. As props do call-site sobrescrevem os
@@ -51,3 +54,6 @@ export const IconFileX = (p: LucideProps) => <FileX strokeWidth={2} {...p} />;
 export const IconPencil = (p: LucideProps) => <Pencil strokeWidth={2} {...p} />;
 export const IconKey = (p: LucideProps) => <KeyRound strokeWidth={2} {...p} />;
 export const IconPhone = (p: LucideProps) => <Phone strokeWidth={2} {...p} />;
+export const IconMessage = (p: LucideProps) => <MessageCircle strokeWidth={2} {...p} />;
+export const IconMail = (p: LucideProps) => <Mail strokeWidth={2} {...p} />;
+export const IconLock = (p: LucideProps) => <Lock strokeWidth={2} {...p} />;

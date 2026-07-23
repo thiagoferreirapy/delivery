@@ -12,7 +12,7 @@ const montserrat = Montserrat({
 
 export const metadata: Metadata = {
   title: "Cabana Lanches",
-  description: "Peça comida da Cabana Lanches — rápido e quentinho.",
+  description: "Peça comida da Cabana Lanches, rápido e quentinho.",
 };
 
 export const viewport: Viewport = {

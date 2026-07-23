@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { OrderDTO } from "@cabana/shared";
 import { StatusBadge } from "./ui";
 import { IconMapPin, IconClock } from "./icons";
@@ -7,20 +8,23 @@ import { timeAgo } from "@/lib/format";
 import { useDeliveryAction } from "@/lib/queries";
 
 export function DeliveryCard({ order }: { order: OrderDTO }) {
+  const router = useRouter();
   const action = useDeliveryAction();
   const itemsCount = order.items.reduce((n, i) => n + i.quantity, 0);
+  // Em rota, o card leva direto para a página de Rota (com o pedido selecionado).
+  const cardHref = order.status === "IN_ROUTE" ? `/rota?order=${order.id}` : `/entrega/${order.id}`;
 
   return (
     <article className="card p-4">
       <div className="mb-2 flex items-center justify-between">
-        <Link href={`/entrega/${order.id}`} className="font-bold text-ink">{order.code}</Link>
+        <Link href={cardHref} className="font-bold text-ink">{order.code}</Link>
         <StatusBadge status={order.status} />
       </div>
       <div className="mb-1 flex items-start gap-1.5 text-sm text-ink">
         <IconMapPin className="mt-0.5 shrink-0 text-brand" width={16} height={16} />
         <span>
           {order.address.street}, {order.address.number}
-          {order.address.complement ? ` — ${order.address.complement}` : ""}
+          {order.address.complement ? `, ${order.address.complement}` : ""}
           <span className="block text-muted">{order.address.neighborhood}, {order.address.city}</span>
         </span>
       </div>
@@ -34,13 +38,22 @@ export function DeliveryCard({ order }: { order: OrderDTO }) {
         </button>
       )}
       {order.status === "PICKED_UP" && (
-        <button onClick={() => action.mutate({ id: order.id, action: "start-route" })} disabled={action.isPending} className="btn-primary w-full text-sm">
+        <button
+          onClick={() =>
+            action.mutate(
+              { id: order.id, action: "start-route" },
+              { onSuccess: () => router.push(`/rota?order=${order.id}`) }
+            )
+          }
+          disabled={action.isPending}
+          className="btn-primary w-full text-sm"
+        >
           Iniciar rota
         </button>
       )}
       {order.status === "IN_ROUTE" && (
-        <Link href={`/entrega/${order.id}`} className="btn-primary w-full text-sm">
-          Confirmar entrega
+        <Link href={`/rota?order=${order.id}`} className="btn-primary w-full text-sm">
+          Ver rota
         </Link>
       )}
     </article>

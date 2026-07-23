@@ -17,6 +17,10 @@ import {
   Bell,
   Pencil,
   Ticket,
+  SearchX,
+  PackageX,
+  Mail,
+  Lock,
   type LucideProps,
 } from "lucide-react";
 
@@ -40,4 +44,8 @@ export const Icon = {
   bell: (p: LucideProps) => <Bell size={20} strokeWidth={2} {...p} />,
   edit: (p: LucideProps) => <Pencil size={20} strokeWidth={2} {...p} />,
   ticket: (p: LucideProps) => <Ticket size={20} strokeWidth={2} {...p} />,
+  searchX: (p: LucideProps) => <SearchX size={20} strokeWidth={2} {...p} />,
+  boxX: (p: LucideProps) => <PackageX size={20} strokeWidth={2} {...p} />,
+  mail: (p: LucideProps) => <Mail size={20} strokeWidth={2} {...p} />,
+  lock: (p: LucideProps) => <Lock size={20} strokeWidth={2} {...p} />,
 };

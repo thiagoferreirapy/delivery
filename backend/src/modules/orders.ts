@@ -14,6 +14,7 @@ import { asyncHandler, badRequest, forbidden, notFound, conflict } from "../lib/
 import { authenticate } from "../middlewares/auth.js";
 import { serializeOrder, orderInclude } from "../lib/serialize.js";
 import { priceOrder } from "../services/pricing.js";
+import { getStoreState } from "../services/store-hours.js";
 import {
   generateOrderCode,
   loadOrderDTO,
@@ -46,6 +47,13 @@ ordersRouter.post(
       userId = data.userId;
     } else {
       throw forbidden("Sem permissão para criar pedidos");
+    }
+
+    // Loja fechada barra o cliente, mas não o balcão: atendente/admin lançam
+    // pedido por telefone fora do horário, e isso é intencional.
+    if (auth.scope === "CUSTOMER") {
+      const state = await getStoreState();
+      if (!state.open) throw conflict(state.closedReason ?? "Estamos fechados no momento");
     }
 
     const address = await prisma.address.findFirst({ where: { id: data.addressId, userId } });
@@ -87,6 +95,7 @@ ordersRouter.post(
               notes: it.notes,
               extrasJson: it.extrasJson,
               removedJson: it.removedJson,
+              selectionsJson: it.selectionsJson,
             })),
           },
           payment: {

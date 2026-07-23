@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Cabana Entregador</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #6E1423; color: #FBF7F2;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+      .wrap { height: 100%; display: flex; flex-direction: column; align-items: center;
+        justify-content: center; gap: 18px; text-align: center; padding: 24px; }
+      .logo { font-weight: 800; font-size: 26px; letter-spacing: .5px; }
+      .sub { opacity: .8; font-size: 14px; max-width: 28ch; line-height: 1.5; }
+      .spin { width: 34px; height: 34px; border: 3px solid rgba(251,247,242,.25);
+        border-top-color: #FBF7F2; border-radius: 50%; animation: s 1s linear infinite; }
+      @keyframes s { to { transform: rotate(360deg); } }
+    </style>
+  </head>
+  <body>
+    <!-- Fallback estático. Com server.url definido, o Capacitor carrega o app
+         Next da URL; esta tela aparece só enquanto conecta. -->
+    <div class="wrap">
+      <div class="spin"></div>
+      <div class="logo">Cabana Entregador</div>
+      <div class="sub">Conectando ao servidor…</div>
+    </div>
+  </body>
+</html>

@@ -1,4 +1,5 @@
 "use client";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { ORDER_STATUS_LABEL, type OrderStatus } from "@cabana/shared";
 import { IconChevronLeft } from "./icons";
@@ -43,10 +44,24 @@ export function Spinner() {
   );
 }
 
-export function EmptyState({ emoji, title, subtitle }: { emoji: string; title: string; subtitle?: string }) {
+export function EmptyState({
+  icon,
+  emoji,
+  title,
+  subtitle,
+}: {
+  icon?: ReactNode;
+  emoji?: string;
+  title: string;
+  subtitle?: string;
+}) {
   return (
     <div className="flex flex-col items-center justify-center gap-2 px-6 py-16 text-center">
-      <span className="text-5xl">{emoji}</span>
+      {icon ? (
+        <span className="grid h-16 w-16 place-items-center rounded-full bg-brand/10 text-brand">{icon}</span>
+      ) : emoji ? (
+        <span className="text-5xl">{emoji}</span>
+      ) : null}
       <p className="font-display text-lg font-bold text-ink">{title}</p>
       {subtitle && <p className="text-sm text-muted">{subtitle}</p>}
     </div>

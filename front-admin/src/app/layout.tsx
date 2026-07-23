@@ -11,7 +11,7 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "Cabana Lanches — Painel",
+  title: "Cabana Lanches - Painel",
   description: "Painel do restaurante Cabana Lanches",
 };
 

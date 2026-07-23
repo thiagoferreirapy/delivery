@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CategoryDTO } from "@cabana/shared";
 import { IconBell, IconMapPin, IconSearch } from "./icons";
 
@@ -18,8 +18,12 @@ interface Props {
   onSearchFocus?: () => void;
 }
 
-// distância de scroll (px) para colapsar totalmente endereço + categorias
-const COLLAPSE = 96;
+// Histerese do colapso. Reexpande perto do topo; colapsa só depois de rolar
+// além da própria altura + esta folga. Colapsar deixa a página mais curta;
+// exigir essa folga garante que, após colapsar, ainda sobre scroll acima do
+// ponto de reexpansão — evitando o loop de "esconde/mostra" em páginas curtas.
+const EXPAND_AT = 8;
+const GAP = 24;
 
 export function StickyHeader({
   userInitial,
@@ -35,22 +39,31 @@ export function StickyHeader({
   notifCount = 0,
   onSearchFocus,
 }: Props) {
-  const collapseRef = useRef<HTMLDivElement>(null);
+  const clipRef = useRef<HTMLDivElement>(null);
+  const fullHRef = useRef(0);
   const [fullH, setFullH] = useState(0);
-  const [progress, setProgress] = useState(0); // 0 = expandido, 1 = colapsado
+  const [collapsed, setCollapsed] = useState(false);
 
-  // mede a altura natural da região (re-mede quando categorias carregam / resize)
+  // altura natural da região que colapsa (scrollHeight ignora o max-height que
+  // aplicamos, então continua estável mesmo colapsado — sem realimentação).
   useEffect(() => {
-    const el = collapseRef.current;
+    const el = clipRef.current;
     if (!el) return;
-    const measure = () => setFullH(el.scrollHeight);
+    const measure = () => {
+      const h = el.scrollHeight;
+      if (h && h !== fullHRef.current) {
+        fullHRef.current = h;
+        setFullH(h);
+      }
+    };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
 
-  // colapso ligado ao progresso do scroll (suave, acompanha o dedo)
+  // Decisão por estado (não por valor contínuo do scroll): um tremido no
+  // scrollY não repinta o header, matando o efeito de piscar.
   useEffect(() => {
     let raf = false;
     const onScroll = () => {
@@ -58,24 +71,19 @@ export function StickyHeader({
       raf = true;
       requestAnimationFrame(() => {
         raf = false;
-        setProgress(Math.min(1, Math.max(0, window.scrollY / COLLAPSE)));
+        const y = window.scrollY;
+        const collapseAt = fullHRef.current + GAP;
+        setCollapsed((c) => {
+          if (y <= EXPAND_AT) return false;
+          if (y >= collapseAt) return true;
+          return c; // zona morta: mantém o estado atual (histerese)
+        });
       });
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-
-  const eased = 1 - Math.pow(1 - progress, 2); // ease-out
-  const collapseStyle: CSSProperties =
-    progress <= 0
-      ? { transformOrigin: "top" }
-      : {
-          height: Math.max(0, fullH * (1 - eased)),
-          opacity: Math.max(0, 1 - progress * 1.3),
-          transform: `translateY(${-6 * eased}px)`,
-          transformOrigin: "top",
-        };
 
   return (
     <header className="sticky top-0 z-40 bg-brand text-cream shadow-soft safe-top">
@@ -117,8 +125,12 @@ export function StickyHeader({
           </button>
         </div>
 
-        {/* Linhas 2 e 3 — recolhem suavemente conforme o scroll */}
-        <div ref={collapseRef} style={collapseStyle} className="overflow-hidden">
+        {/* Linhas 2 e 3 — colapsam por estado, com transição CSS */}
+        <div
+          ref={clipRef}
+          className="overflow-hidden transition-[max-height,opacity] duration-300 ease-out"
+          style={{ maxHeight: collapsed ? 0 : fullH || undefined, opacity: collapsed ? 0 : 1 }}
+        >
           {/* Linha 2 — endereço */}
           <button
             type="button"
@@ -136,7 +148,7 @@ export function StickyHeader({
 
           {/* Linha 3 — categorias */}
           {(onCategory || categories.length > 0) && (
-            <nav className="no-scrollbar mt-2 flex gap-2 overflow-x-auto pb-1">
+            <nav className="no-scrollbar mt-4 flex gap-2 overflow-x-auto pb-1">
               <CategoryTab
                 label="Tudo"
                 active={activeCategory === null}

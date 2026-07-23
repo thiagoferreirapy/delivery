@@ -1,22 +1,42 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ORDER_STATUS_LABEL, type OrderStatus } from "@cabana/shared";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import { ORDER_STATUS_LABEL, SOCKET_EVENTS, type OrderStatus, type OrderStatusEvent } from "@cabana/shared";
 import { AdminShell } from "@/components/AdminShell";
 import { PageTitle, EmptyState, StatusBadge } from "@/components/ui";
 import { TableSkeleton } from "@/components/Skeleton";
 import { Icon } from "@/components/icons";
 import { useOrders } from "@/lib/queries";
 import { useRequireRole } from "@/lib/use-require-role";
+import { getSocket } from "@/lib/socket";
 import { brl, shortDate } from "@/lib/format";
 
 const STATUSES = Object.keys(ORDER_STATUS_LABEL) as OrderStatus[];
 
 export default function OrdersPage() {
   const { ready } = useRequireRole(["ADMIN", "ATTENDANT"]);
+  const qc = useQueryClient();
   const [status, setStatus] = useState("");
   const [code, setCode] = useState("");
   const { data: orders = [], isLoading } = useOrders({ status: status || undefined, code: code || undefined });
+
+  // Avisa (toast) quando um novo pedido é confirmado, enquanto estiver nesta página.
+  useEffect(() => {
+    if (!ready) return;
+    const socket = getSocket();
+    const onNew = (e: OrderStatusEvent) => {
+      qc.invalidateQueries({ queryKey: ["orders"] });
+      toast.success(`Novo pedido${e?.code ? ` - ${e.code}` : ""}`, {
+        description: "Um novo pedido acabou de entrar.",
+      });
+    };
+    socket.on(SOCKET_EVENTS.ORDER_NEW, onNew);
+    return () => {
+      socket.off(SOCKET_EVENTS.ORDER_NEW, onNew);
+    };
+  }, [ready, qc]);
 
   if (!ready) return null;
 
@@ -48,7 +68,7 @@ export default function OrdersPage() {
       {isLoading ? (
         <TableSkeleton />
       ) : orders.length === 0 ? (
-        <EmptyState emoji="🧾" title="Nenhum pedido" />
+        <EmptyState icon={<Icon.orders width={30} height={30} />} title="Nenhum pedido" subtitle="Os pedidos aparecem aqui conforme chegam." />
       ) : (
         <div className="card overflow-hidden">
           <table className="w-full text-sm">
@@ -70,7 +90,7 @@ export default function OrdersPage() {
                   </td>
                   <td className="px-4 py-3 text-ink">{o.customer.name}</td>
                   <td className="px-4 py-3"><StatusBadge status={o.status} /></td>
-                  <td className="hidden px-4 py-3 text-muted md:table-cell">{o.courier?.name ?? "—"}</td>
+                  <td className="hidden px-4 py-3 text-muted md:table-cell">{o.courier?.name ?? "-"}</td>
                   <td className="hidden px-4 py-3 text-muted sm:table-cell">{shortDate(o.createdAt)}</td>
                   <td className="px-4 py-3 text-right font-semibold text-ink">{brl(o.total)}</td>
                 </tr>

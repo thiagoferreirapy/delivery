@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Cabana Entregador</string>
+    <string name="title_activity_main">Cabana Entregador</string>
+    <string name="package_name">com.cabanalanches.entregador</string>
+    <string name="custom_url_scheme">com.cabanalanches.entregador</string>
+</resources>

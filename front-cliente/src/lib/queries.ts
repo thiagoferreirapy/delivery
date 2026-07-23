@@ -16,9 +16,39 @@ import type {
   ChangePasswordInput,
   QuoteDTO,
   PaymentMethod,
+  OrderMessageDTO,
+  OrderMessagesResponse,
+  MessageChannel,
 } from "@cabana/shared";
 import { api } from "./api";
 import { useAuthStore } from "./auth-store";
+
+// ===== Chat do pedido — canal STORE (loja) ou COURIER (entregador) =====
+export function useOrderMessages(orderId: string, channel: MessageChannel = "STORE", enabled = true) {
+  return useQuery({
+    queryKey: ["order-messages", orderId, channel],
+    queryFn: () => api<OrderMessagesResponse>(`/orders/${orderId}/messages?channel=${channel}`),
+    enabled: !!orderId && enabled,
+    // WebSocket entrega as mensagens; refetchOnMount garante histórico fresco ao abrir.
+    refetchOnMount: "always",
+    staleTime: 0,
+  });
+}
+export function useSendMessage(orderId: string, channel: MessageChannel = "STORE") {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: string) =>
+      api<OrderMessageDTO>(`/orders/${orderId}/messages?channel=${channel}`, { method: "POST", body: { body } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["order-messages", orderId, channel] }),
+  });
+}
+export function useMarkMessagesRead(orderId: string, channel: MessageChannel = "STORE") {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api<{ ok: boolean }>(`/orders/${orderId}/messages/read?channel=${channel}`, { method: "POST" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["order-messages", orderId, channel] }),
+  });
+}
 
 // ===== Catálogo =====
 export function useCategories() {

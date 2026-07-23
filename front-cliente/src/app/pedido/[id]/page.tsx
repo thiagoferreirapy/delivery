@@ -3,13 +3,14 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { SOCKET_EVENTS, type CourierLocationEvent } from "@cabana/shared";
-import { useOrder, useConfirmReceipt, useRateOrder } from "@/lib/queries";
+import { SOCKET_EVENTS, type CourierLocationEvent, type MessageChannel } from "@cabana/shared";
+import { useOrder, useConfirmReceipt, useRateOrder, useOrderMessages } from "@/lib/queries";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { getSocket } from "@/lib/socket";
 import { brl } from "@/lib/format";
 import { PageHeader, EmptyState, StatusBadge, Stars } from "@/components/ui";
-import { IconFileX } from "@/components/icons";
+import { IconFileX, IconMessage } from "@/components/icons";
+import { OrderChat } from "@/components/OrderChat";
 import { OrderTrackingSkeleton } from "@/components/Skeleton";
 import { Loader2 } from "lucide-react";
 import { StatusTimeline } from "@/components/StatusTimeline";
@@ -20,12 +21,19 @@ export default function TrackOrderPage() {
   const { ready } = useRequireAuth();
   const qc = useQueryClient();
   const { data: order, isLoading } = useOrder(id, { poll: true });
+  const { data: msgData } = useOrderMessages(id, "STORE");
+  const inRoute = order?.status === "IN_ROUTE" && !!order?.courier;
+  const { data: courierMsgData } = useOrderMessages(id, "COURIER", inRoute);
   const confirmReceipt = useConfirmReceipt();
   const rateOrder = useRateOrder();
 
   const [courierPos, setCourierPos] = useState<{ lat: number; lng: number } | null>(null);
   const [stars, setStars] = useState(5);
   const [comment, setComment] = useState("");
+  const [chatChannel, setChatChannel] = useState<null | MessageChannel>(null);
+
+  const unread = msgData?.messages.filter((m) => m.senderType === "EMPLOYEE" && !m.readAt).length ?? 0;
+  const courierUnread = courierMsgData?.messages.filter((m) => m.senderType === "COURIER" && !m.readAt).length ?? 0;
 
   // Realtime: status + localização do entregador
   useEffect(() => {
@@ -36,14 +44,17 @@ export default function TrackOrderPage() {
     const onLocation = (e: CourierLocationEvent) => {
       if (e.orderId === id) setCourierPos({ lat: e.lat, lng: e.lng });
     };
+    const onMessage = () => qc.invalidateQueries({ queryKey: ["order-messages", id] });
     socket.on(SOCKET_EVENTS.ORDER_STATUS, onStatus);
     socket.on(SOCKET_EVENTS.ORDER_DELIVERED, onStatus);
     socket.on(SOCKET_EVENTS.COURIER_LOCATION, onLocation);
+    socket.on(SOCKET_EVENTS.MESSAGE_NEW, onMessage);
     return () => {
       socket.emit("order:unsubscribe", id);
       socket.off(SOCKET_EVENTS.ORDER_STATUS, onStatus);
       socket.off(SOCKET_EVENTS.ORDER_DELIVERED, onStatus);
       socket.off(SOCKET_EVENTS.COURIER_LOCATION, onLocation);
+      socket.off(SOCKET_EVENTS.MESSAGE_NEW, onMessage);
     };
   }, [id, ready, qc]);
 
@@ -74,6 +85,28 @@ export default function TrackOrderPage() {
           <span className="font-semibold text-ink tabular-nums">{brl(order.total)}</span>
         </div>
 
+        {/* Falar com a loja */}
+        <button
+          onClick={() => setChatChannel("STORE")}
+          className="card flex items-center gap-3 p-3 text-left transition active:scale-[0.99] hover:shadow-cardHover"
+        >
+          <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand/10 text-brand">
+            <IconMessage width={20} height={20} />
+            {unread > 0 && (
+              <span className="absolute -right-1 -top-1 grid h-5 min-w-[20px] place-items-center rounded-full bg-danger px-1 text-[11px] font-bold text-white">
+                {unread}
+              </span>
+            )}
+          </span>
+          <span className="flex-1">
+            <span className="block text-sm font-semibold text-ink">Falar com a loja</span>
+            <span className="block text-xs text-muted">
+              {unread > 0 ? `${unread} nova(s) mensagem(ns)` : "Dúvidas sobre o pedido? Envie uma mensagem."}
+            </span>
+          </span>
+          <span className="text-muted">›</span>
+        </button>
+
         {/* Em rota: entregador + mapa + aviso */}
         {order.status === "IN_ROUTE" && courier && (
           <section className="card flex flex-col gap-3 p-4">
@@ -84,6 +117,17 @@ export default function TrackOrderPage() {
                 <p className="text-xs text-muted">Seu pedido está a caminho</p>
               </div>
             </div>
+            <button
+              onClick={() => setChatChannel("COURIER")}
+              className="flex items-center justify-center gap-2 rounded-xl border border-brand/30 py-2.5 text-sm font-semibold text-brand transition active:scale-[0.98]"
+            >
+              <IconMessage width={16} height={16} /> Falar com o entregador
+              {courierUnread > 0 && (
+                <span className="grid h-5 min-w-[20px] place-items-center rounded-full bg-danger px-1 text-[11px] font-bold text-white">
+                  {courierUnread}
+                </span>
+              )}
+            </button>
             <LiveMap courier={liveCourier} dest={dest} etaMinutes={15} />
             <p className="rounded-xl bg-warning/10 px-3 py-2 text-xs text-warning">
               ℹ️ O entregador pode estar entregando outros pedidos na região, então o trajeto pode variar.
@@ -161,12 +205,14 @@ export default function TrackOrderPage() {
           <h2 className="mb-1 font-semibold text-ink">Entrega em</h2>
           <p className="text-muted">
             {order.address.street}, {order.address.number}
-            {order.address.complement ? ` — ${order.address.complement}` : ""}
+            {order.address.complement ? `, ${order.address.complement}` : ""}
             <br />
             {order.address.neighborhood}, {order.address.city}/{order.address.state}
           </p>
         </section>
       </div>
+
+      {chatChannel && <OrderChat orderId={order.id} channel={chatChannel} onClose={() => setChatChannel(null)} />}
     </div>
   );
 }

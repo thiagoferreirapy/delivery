@@ -5,13 +5,16 @@ import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import path from "node:path";
 import { env } from "./config/env.js";
+import { isLanOrNgrok } from "./lib/cors.js";
 import { notFoundHandler, errorHandler } from "./middlewares/error.js";
 
 import { authRouter } from "./modules/auth.js";
 import { usersRouter } from "./modules/users.js";
 import { categoriesRouter, productsRouter } from "./modules/catalog.js";
+import { storeRouter } from "./modules/store.js";
 import { couponsRouter } from "./modules/coupons.js";
 import { ordersRouter } from "./modules/orders.js";
+import { messagesRouter } from "./modules/messages.js";
 import { paymentsRouter } from "./modules/payments.js";
 import { kitchenRouter } from "./modules/kitchen.js";
 import { dispatchRouter } from "./modules/dispatch.js";
@@ -28,8 +31,9 @@ export function createApp() {
     cors({
       credentials: true,
       origin(origin, cb) {
-        // permite requests sem origin (apps mobile/capacitor, curl) e origens da lista
-        if (!origin || env.corsOrigins.includes(origin)) return cb(null, true);
+        // permite: sem origin (curl/app nativo), a lista, IP de rede local (LAN)
+        // e qualquer túnel ngrok (as URLs mudam a cada restart no free)
+        if (!origin || env.corsOrigins.includes(origin) || isLanOrNgrok(origin)) return cb(null, true);
         cb(new Error(`Origin não permitida: ${origin}`));
       },
     })
@@ -45,10 +49,12 @@ export function createApp() {
 
   app.use("/auth", authRouter);
   app.use("/me", usersRouter);
+  app.use("/store", storeRouter);
   app.use("/categories", categoriesRouter);
   app.use("/products", productsRouter);
   app.use("/coupons", couponsRouter);
   app.use("/orders", ordersRouter);
+  app.use("/orders", messagesRouter);
   app.use("/payments", paymentsRouter);
   app.use("/kitchen", kitchenRouter);
   app.use("/dispatch", dispatchRouter);

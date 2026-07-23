@@ -5,9 +5,17 @@ import type {
   AddressDTO,
   OrderDTO,
   CourierPublicDTO,
+  CourierFullDTO,
   OrderStatus,
   PaymentMethod,
   PaymentStatus,
+  OrderMessageDTO,
+  MessageSenderType,
+  MessageChannel,
+  OptionGroupDTO,
+  OptionGroupType,
+  OptionGroupKind,
+  OptionPricingRule,
 } from "@cabana/shared";
 
 // Prisma Decimal / Date -> primitivos serializáveis
@@ -75,6 +83,30 @@ export function serializeProduct(p: any): ProductDTO {
     maxRemovable: p.maxRemovable ?? null,
     extras: (p.extras ?? []).map((e: any) => ({ id: e.id, name: e.name, price: dec(e.price) })),
     removables: (p.removables ?? []).map((r: any) => ({ id: r.id, name: r.name })),
+    optionGroups: (p.optionGroups ?? []).map(serializeOptionGroup),
+  };
+}
+
+export function serializeOptionGroup(g: any): OptionGroupDTO {
+  return {
+    id: g.id,
+    name: g.name,
+    type: g.type as OptionGroupType,
+    kind: g.kind as OptionGroupKind,
+    minSelect: g.minSelect,
+    maxSelect: g.maxSelect ?? null,
+    pricingRule: g.pricingRule as OptionPricingRule,
+    allowQuantity: g.allowQuantity,
+    sortOrder: g.sortOrder,
+    options: (g.options ?? [])
+      .filter((o: any) => o.active)
+      .map((o: any) => ({
+        id: o.id,
+        name: o.name,
+        priceDelta: dec(o.priceDelta),
+        linkedProductId: o.linkedProductId ?? null,
+        active: o.active,
+      })),
   };
 }
 
@@ -126,6 +158,25 @@ export function serializeCourier(c: any): CourierPublicDTO {
   };
 }
 
+// Cadastro completo (admin + o próprio entregador). Não usar em DTO público!
+export function serializeCourierFull(c: any): CourierFullDTO {
+  return {
+    id: c.id,
+    name: c.name,
+    phone: c.phone,
+    active: c.active,
+    photoUrl: c.photoUrl ?? null,
+    birthDate: iso(c.birthDate),
+    cpf: c.cpf ?? null,
+    cpfFrontUrl: c.cpfFrontUrl ?? null,
+    cpfBackUrl: c.cpfBackUrl ?? null,
+    cnh: c.cnh ?? null,
+    cnhFrontUrl: c.cnhFrontUrl ?? null,
+    cnhBackUrl: c.cnhBackUrl ?? null,
+    createdAt: iso(c.createdAt)!,
+  };
+}
+
 // Order com relações: items(+product), address, user, courier, payment, delivery, history, rating
 export function serializeOrder(o: any): OrderDTO {
   return {
@@ -150,6 +201,7 @@ export function serializeOrder(o: any): OrderDTO {
       notes: it.notes ?? null,
       extras: safeJson(it.extrasJson, [] as any[]),
       removed: safeJson(it.removedJson, [] as string[]),
+      selections: safeJson(it.selectionsJson, [] as any[]),
     })),
     address: serializeAddress(o.address),
     customer: {
@@ -171,6 +223,20 @@ export function serializeOrder(o: any): OrderDTO {
     rating: o.rating ? { stars: o.rating.stars, comment: o.rating.comment ?? null } : null,
     createdAt: iso(o.createdAt)!,
     updatedAt: iso(o.updatedAt)!,
+  };
+}
+
+export function serializeMessage(m: any): OrderMessageDTO {
+  return {
+    id: m.id,
+    orderId: m.orderId,
+    channel: (m.channel ?? "STORE") as MessageChannel,
+    senderType: m.senderType as MessageSenderType,
+    senderId: m.senderId,
+    senderName: m.senderName,
+    body: m.body,
+    readAt: iso(m.readAt),
+    createdAt: iso(m.createdAt)!,
   };
 }
 

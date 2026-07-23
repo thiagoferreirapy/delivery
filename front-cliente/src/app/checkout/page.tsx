@@ -12,9 +12,9 @@ import { DELIVERY_FEE_DISPLAY } from "@/lib/config";
 import { PageHeader, Spinner } from "@/components/ui";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { IconCopy, IconCheck } from "@/components/icons";
+import { IconCopy, IconCheck, IconMapPin } from "@/components/icons";
 
-const METHODS: PaymentMethod[] = ["PIX", "CREDIT_CARD", "DEBIT_CARD", "CASH"];
+const METHODS: PaymentMethod[] = ["PIX", "CREDIT_CARD", "DEBIT_CARD"];
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -24,6 +24,7 @@ export default function CheckoutPage() {
   const clearCart = useCartStore((s) => s.clear);
 
   const [addressId, setAddressId] = useState<string>("");
+  const [addrSheet, setAddrSheet] = useState(false);
   const [method, setMethod] = useState<PaymentMethod>("PIX");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -75,6 +76,7 @@ export default function CheckoutPage() {
   const total = quote ? quote.total : localSubtotal + (items.length ? DELIVERY_FEE_DISPLAY : 0);
   const couponApplied = !!quote?.coupon;
   const couponError = appliedCode && quote && !quote.coupon ? quote.couponError : null;
+  const selectedAddr = addresses.find((a) => a.id === addressId) ?? addresses[0];
 
   if (!ready) return <Spinner />;
 
@@ -160,20 +162,24 @@ export default function CheckoutPage() {
             <Spinner />
           ) : addresses.length === 0 ? (
             <Link href="/perfil" className="btn-ghost w-full">Cadastrar endereço</Link>
-          ) : (
+          ) : addresses.length <= 2 ? (
             <div className="flex flex-col gap-2">
               {addresses.map((a) => (
-                <label
-                  key={a.id}
-                  className={`card flex cursor-pointer items-start gap-3 p-3 ${addressId === a.id ? "ring-2 ring-brand" : ""}`}
-                >
-                  <input type="radio" name="addr" checked={addressId === a.id} onChange={() => setAddressId(a.id)} className="mt-1 accent-brand" />
-                  <span className="text-sm">
-                    <span className="font-semibold text-ink">{a.label}</span>
-                    <span className="block text-muted">{a.street}, {a.number} — {a.neighborhood}, {a.city}/{a.state}</span>
-                  </span>
-                </label>
+                <AddrOption key={a.id} a={a} checked={addressId === a.id} onSelect={() => setAddressId(a.id)} />
               ))}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {selectedAddr && (
+                <AddrOption a={selectedAddr} checked onSelect={() => setAddressId(selectedAddr.id)} />
+              )}
+              <button
+                type="button"
+                onClick={() => setAddrSheet(true)}
+                className="flex items-center gap-1 self-start text-sm font-semibold text-brand"
+              >
+                <IconMapPin width={16} height={16} /> Escolher outro endereço ({addresses.length})
+              </button>
             </div>
           )}
         </section>
@@ -286,6 +292,54 @@ export default function CheckoutPage() {
             {submitting ? "Enviando…" : method === "PIX" ? "Pagar com PIX" : "Confirmar pedido"}
           </button>
         </div>
+      </div>
+
+      {/* Bottom-sheet: escolher entre todos os endereços */}
+      {addrSheet && (
+        <Sheet title="Endereço de entrega" onClose={() => setAddrSheet(false)}>
+          <div className="-mx-1 flex max-h-[60vh] flex-col gap-2 overflow-y-auto px-1 py-1">
+            {addresses.map((a) => (
+              <AddrOption
+                key={a.id}
+                a={a}
+                checked={addressId === a.id}
+                onSelect={() => { setAddressId(a.id); setAddrSheet(false); }}
+              />
+            ))}
+          </div>
+        </Sheet>
+      )}
+    </div>
+  );
+}
+
+function AddrOption({
+  a,
+  checked,
+  onSelect,
+}: {
+  a: { id: string; label: string; street: string; number: string; neighborhood: string; city: string; state: string };
+  checked: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <label className={`card flex cursor-pointer items-start gap-3 p-3 ${checked ? "ring-2 ring-brand" : ""}`}>
+      <input type="radio" name="addr" checked={checked} onChange={onSelect} className="mt-1 accent-brand" />
+      <span className="text-sm">
+        <span className="font-semibold text-ink">{a.label}</span>
+        <span className="block text-muted">{a.street}, {a.number} - {a.neighborhood}, {a.city}/{a.state}</span>
+      </span>
+    </label>
+  );
+}
+
+function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={onClose}>
+      <div className="w-full max-w-app rounded-t-3xl bg-cream p-4 pb-8" onClick={(e) => e.stopPropagation()}>
+        <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-black/15" />
+        <h3 className="mb-3 font-display text-lg font-bold text-ink">{title}</h3>
+        {children}
       </div>
     </div>
   );
